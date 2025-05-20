@@ -1,5 +1,7 @@
 // src/lib/api.ts
 // Configuración base para fetch
+const API_BASE_URL = 'http://localhost:8080';
+
 const fetchConfig = {
   headers: {
     'Content-Type': 'application/json',
@@ -12,157 +14,79 @@ const handleFetchError = (error: unknown) => {
   throw error;
 };
 
-// 1. Análisis de tráfico general
-export const fetchTotalVehicleVolume = async () => {
+// Función genérica para fetching
+const fetchData = async (endpoint: string) => {
   try {
-    const response = await fetch('/api/detections/volume/total', fetchConfig);
+    console.log(`Fetching data from: ${API_BASE_URL}${endpoint}`);
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, fetchConfig);
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     return await response.json();
   } catch (error) {
     return handleFetchError(error);
   }
+};
+
+// 1. Análisis de tráfico general
+export const fetchTotalVehicleVolume = async () => {
+  return fetchData('/api/detections/volume/total');
 };
 
 export const fetchVehicleVolumeByLane = async () => {
-  try {
-    const response = await fetch('/api/detections/volume/by-lane', fetchConfig);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    return handleFetchError(error);
-  }
+  return fetchData('/api/detections/volume/by-lane');
 };
 
 export const fetchHourlyPatterns = async () => {
-  try {
-    const response = await fetch('/api/detections/patterns/hourly', fetchConfig);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    return handleFetchError(error);
-  }
+  return fetchData('/api/detections/patterns/hourly');
 };
 
 // 2. Análisis de comportamiento por carril
 export const fetchAvgSpeedByLane = async () => {
-  try {
-    const response = await fetch('/api/detections/lanes/speed', fetchConfig);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    return handleFetchError(error);
-  }
+  return fetchData('/api/detections/lanes/speed');
 };
 
 export const fetchBottlenecks = async () => {
-  try {
-    const response = await fetch('/api/detections/lanes/bottlenecks', fetchConfig);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    return handleFetchError(error);
-  }
+  return fetchData('/api/detections/lanes/bottlenecks');
 };
 
 // 3. Análisis temporal
 export const fetchTrafficEvolution = async () => {
-  try {
-    const response = await fetch('/api/detections/temporal/evolution', fetchConfig);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    return handleFetchError(error);
-  }
+  return fetchData('/api/detections/temporal/evolution');
 };
 
 export const fetchSpeedEvolution = async () => {
-  try {
-    const response = await fetch('/api/detections/temporal/speed', fetchConfig);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    return handleFetchError(error);
-  }
+  return fetchData('/api/detections/temporal/speed');
 };
 
 // 4. Análisis por tipo de vehículo
 export const fetchVehicleTypeDominance = async () => {
-  try {
-    const response = await fetch('/api/detections/vehicle-types/dominance', fetchConfig);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    return handleFetchError(error);
-  }
+  return fetchData('/api/detections/vehicle-types/dominance');
 };
 
 // 5. Estructuras de datos
 export const fetchArrayData = async () => {
-  try {
-    const response = await fetch('/api/detections/structures/array', fetchConfig);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    return handleFetchError(error);
-  }
+  return fetchData('/api/detections/structures/array');
 };
 
 export const fetchLinkedListData = async () => {
-  try {
-    const response = await fetch('/api/detections/structures/linked-list', fetchConfig);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    return handleFetchError(error);
-  }
+  return fetchData('/api/detections/structures/linked-list');
 };
 
 export const fetchDoubleLinkedListData = async () => {
-  try {
-    const response = await fetch('/api/detections/structures/double-linked-list', fetchConfig);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    return handleFetchError(error);
-  }
+  return fetchData('/api/detections/structures/double-linked-list');
 };
 
 export const fetchCircularDoubleLinkedListData = async () => {
-  try {
-    const response = await fetch('/api/detections/structures/circular-double-linked-list', fetchConfig);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    return handleFetchError(error);
-  }
+  return fetchData('/api/detections/structures/circular-double-linked-list');
 };
 
 export const fetchStackData = async () => {
-  try {
-    const response = await fetch('/api/detections/structures/stack', fetchConfig);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    return handleFetchError(error);
-  }
+  return fetchData('/api/detections/structures/stack');
 };
 
 export const fetchQueueData = async () => {
-  try {
-    const response = await fetch('/api/detections/structures/queue', fetchConfig);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    return handleFetchError(error);
-  }
+  return fetchData('/api/detections/structures/queue');
 };
 
 export const fetchTreeData = async () => {
-  try {
-    const response = await fetch('/api/detections/structures/tree', fetchConfig);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    return handleFetchError(error);
-  }
+  return fetchData('/api/detections/structures/tree');
 };
