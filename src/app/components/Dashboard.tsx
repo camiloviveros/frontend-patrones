@@ -1,4 +1,3 @@
-
 import TrafficVolumeChart from './charts/TrafficVolumeChart';
 import LaneDistributionChart from './charts/LaneDistributionChart';
 import TimePatternChart from './charts/TimePatternChart';
@@ -16,6 +15,17 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ data, isLoading = false }: DashboardProps) {
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-pulse">
+        {[...Array(8)].map((_, index) => (
+          <div key={index} className="bg-gray-200 rounded-lg h-80"></div>
+        ))}
+      </div>
+    );
+  }
+
+  // Verificar que todos los datos necesarios estén presentes
   const { 
     totalVolume, 
     volumeByLane, 
@@ -26,16 +36,6 @@ export default function Dashboard({ data, isLoading = false }: DashboardProps) {
     speedEvolution, 
     vehicleTypeDominance 
   } = data;
-
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-pulse">
-        {[...Array(8)].map((_, index) => (
-          <div key={index} className="bg-gray-200 rounded-lg h-80"></div>
-        ))}
-      </div>
-    );
-  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -48,7 +48,7 @@ export default function Dashboard({ data, isLoading = false }: DashboardProps) {
           </div>
           <h2 className="text-xl font-bold text-slate-800">Volumen Total de Vehículos</h2>
         </div>
-        <TrafficVolumeChart data={totalVolume} />
+        <TrafficVolumeChart data={totalVolume || { total: {} }} />
       </div>
       
       <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-100 transition-all duration-300 hover:shadow-xl">
@@ -60,7 +60,7 @@ export default function Dashboard({ data, isLoading = false }: DashboardProps) {
           </div>
           <h2 className="text-xl font-bold text-slate-800">Distribución por Carril</h2>
         </div>
-        <LaneDistributionChart data={volumeByLane} />
+        <LaneDistributionChart data={volumeByLane || {}} />
       </div>
       
       <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-100 transition-all duration-300 hover:shadow-xl">
@@ -72,7 +72,7 @@ export default function Dashboard({ data, isLoading = false }: DashboardProps) {
           </div>
           <h2 className="text-xl font-bold text-slate-800">Patrones Horarios de Tráfico</h2>
         </div>
-        <TimePatternChart data={hourlyPatterns} />
+        <TimePatternChart data={hourlyPatterns || {}} />
       </div>
       
       <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-100 transition-all duration-300 hover:shadow-xl">
@@ -84,7 +84,7 @@ export default function Dashboard({ data, isLoading = false }: DashboardProps) {
           </div>
           <h2 className="text-xl font-bold text-slate-800">Comparación de Velocidad por Carril</h2>
         </div>
-        <SpeedComparisonChart data={avgSpeedByLane} />
+        <SpeedComparisonChart data={avgSpeedByLane || {}} />
       </div>
       
       <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-100 transition-all duration-300 hover:shadow-xl">
@@ -96,7 +96,7 @@ export default function Dashboard({ data, isLoading = false }: DashboardProps) {
           </div>
           <h2 className="text-xl font-bold text-slate-800">Cuellos de Botella Identificados</h2>
         </div>
-        <BottleneckChart data={bottlenecks} />
+        <BottleneckChart data={bottlenecks || []} />
       </div>
       
       <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-100 transition-all duration-300 hover:shadow-xl">
@@ -108,7 +108,7 @@ export default function Dashboard({ data, isLoading = false }: DashboardProps) {
           </div>
           <h2 className="text-xl font-bold text-slate-800">Evolución del Tráfico</h2>
         </div>
-        <TrafficEvolutionChart data={trafficEvolution} />
+        <TrafficEvolutionChart data={trafficEvolution || { timestamps: [], car: [], bus: [], truck: [] }} />
       </div>
       
       <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-100 transition-all duration-300 hover:shadow-xl">
@@ -120,7 +120,7 @@ export default function Dashboard({ data, isLoading = false }: DashboardProps) {
           </div>
           <h2 className="text-xl font-bold text-slate-800">Evolución de la Velocidad</h2>
         </div>
-        <SpeedEvolutionChart data={speedEvolution} />
+        <SpeedEvolutionChart data={speedEvolution || { timestamps: [], lane_1: [], lane_2: [], lane_3: [] }} />
       </div>
       
       <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-100 transition-all duration-300 hover:shadow-xl">
@@ -132,7 +132,7 @@ export default function Dashboard({ data, isLoading = false }: DashboardProps) {
           </div>
           <h2 className="text-xl font-bold text-slate-800">Dominancia por Tipo de Vehículo</h2>
         </div>
-        <VehicleTypeChart data={vehicleTypeDominance} />
+        <VehicleTypeChart data={vehicleTypeDominance || {}} />
       </div>
     </div>
   );

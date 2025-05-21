@@ -1,13 +1,17 @@
-// src/components/charts/TrafficVolumeChart.tsx
 import { Bar } from 'recharts';
 import { BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface ChartData {
-  total: Record<string, number>;
+  total?: Record<string, number>;
 }
 
 export default function TrafficVolumeChart({ data }: { data: ChartData }) {
-  if (!data.total) return <div>No hay datos disponibles</div>;
+  // Verificar si data existe y si data.total existe
+  if (!data || !data.total || Object.keys(data.total).length === 0) {
+    return <div className="flex justify-center items-center h-64 bg-gray-100 rounded-lg">
+      <p className="text-gray-500">No hay datos disponibles</p>
+    </div>;
+  }
   
   const chartData = Object.entries(data.total).map(([type, count]) => ({
     name: type.charAt(0).toUpperCase() + type.slice(1),
