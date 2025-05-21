@@ -1,3 +1,4 @@
+import React, { memo } from 'react';
 import TrafficVolumeChart from './charts/TrafficVolumeChart';
 import LaneDistributionChart from './charts/LaneDistributionChart';
 import TimePatternChart from './charts/TimePatternChart';
@@ -14,7 +15,8 @@ interface DashboardProps {
   isLoading?: boolean;
 }
 
-export default function Dashboard({ data, isLoading = false }: DashboardProps) {
+// Usar React.memo para reducir renderizados innecesarios
+const Dashboard = memo(({ data, isLoading = false }: DashboardProps) => {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-pulse">
@@ -136,4 +138,32 @@ export default function Dashboard({ data, isLoading = false }: DashboardProps) {
       </div>
     </div>
   );
-}
+}, (prevProps, nextProps) => {
+  // Optimización: solo renderizar si el estado de carga cambia o si los datos son realmente diferentes
+  if (prevProps.isLoading !== nextProps.isLoading) {
+    return false; // renderizar nuevamente
+  }
+  
+  // Verificación profunda de igualdad para evitar renderizados innecesarios
+  // Solo comparamos algunos campos clave para evitar una comparación costosa completa
+  const prevData = prevProps.data;
+  const nextData = nextProps.data;
+  
+  if (!prevData || !nextData) {
+    return prevData === nextData;
+  }
+  
+  // Comprobar si alguna de las métricas principales ha cambiado
+  if (JSON.stringify(prevData.totalVolume?.total) !== JSON.stringify(nextData.totalVolume?.total)) {
+    return false;
+  }
+  
+  if (Object.keys(prevData.volumeByLane || {}).length !== Object.keys(nextData.volumeByLane || {}).length) {
+    return false;
+  }
+  
+  // Si llegamos aquí, consideramos que los datos son iguales
+  return true;
+});
+
+export default Dashboard;
