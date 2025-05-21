@@ -1,7 +1,9 @@
 /** @type {import('next').NextConfig} */
+
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Ya no necesitamos el proxy porque nos conectaremos directamente al backend
+  // Eliminamos la configuración experimental incorrecta
 };
 
 module.exports = nextConfig;

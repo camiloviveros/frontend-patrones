@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { testBackendConnection } from '@/lib/api';
 
 export default function NavBar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -15,27 +14,40 @@ export default function NavBar() {
       try {
         setApiStatus('loading');
         setStatusDetails('Verificando conexión API...');
-
-        // Usamos la conexión directa para verificar
-        const connectionOk = await testBackendConnection();
         
-        if (connectionOk) {
+        // Usar fetch con un timeout corto pero sin signal para evitar errores de abort
+        const fetchPromise = fetch('http://localhost:8080/api/detections/volume/total', {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          mode: 'cors' // Asegurarnos de que es una petición CORS
+        });
+        
+        // Crear un timeout manual
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Timeout')), 3000);
+        });
+        
+        // Usar Promise.race para implementar un timeout sin usar AbortController
+        const response = await Promise.race([fetchPromise, timeoutPromise]) as Response;
+        
+        if (response.ok) {
           setApiStatus('online');
           setStatusDetails('API conectada correctamente');
-          console.log('Conexión directa exitosa al backend');
         } else {
           setApiStatus('offline');
-          setStatusDetails('API no disponible');
-          console.error('No se pudo conectar al backend');
+          setStatusDetails(`API responde con error: ${response.status}`);
         }
       } catch (error) {
-        console.error('Error al verificar estado de la API:', error);
         setApiStatus('offline');
-        setStatusDetails('Error al conectar con la API');
+        setStatusDetails('Error de conexión con la API');
       }
     };
 
     checkApiStatus();
+    
     // Verificar cada 30 segundos
     const interval = setInterval(checkApiStatus, 30000);
     return () => clearInterval(interval);
@@ -88,6 +100,9 @@ export default function NavBar() {
             </Link>
             <Link href="/structures" className="hover:text-blue-200 py-2 px-3 rounded-md hover:bg-blue-700 transition-colors">
               Estructuras de Datos
+            </Link>
+            <Link href="/api-test" className="bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-3 rounded-md transition-colors">
+              Test API
             </Link>
           </div>
           <button
@@ -150,6 +165,9 @@ export default function NavBar() {
             </Link>
             <Link href="/structures" className="block py-2 px-3 hover:bg-blue-700 rounded-md hover:text-blue-200 transition-colors">
               Estructuras de Datos
+            </Link>
+            <Link href="/api-test" className="block py-2 px-3 bg-yellow-600 rounded-md text-white transition-colors">
+              Test API
             </Link>
           </div>
         )}

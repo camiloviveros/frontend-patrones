@@ -1,100 +1,168 @@
-// src/lib/api.ts
-// Versión modificada para conectarse directamente al backend en lugar de usar el proxy de Next.js
+// src/lib/api.ts - VERSIÓN CON TIMEOUT EXTENDIDO
 
-// Configuración base para fetch - usamos conexión directa
-const API_BASE_URL = 'http://localhost:8080/api'; // Conexión directa al backend
+// Configuración base para fetch
+const API_BASE_URL = 'http://localhost:8080/api';
 
 /**
- * Configuración de fetch para todas las peticiones
+ * Configuración base para fetch
  */
 const fetchConfig = {
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   },
-  // Modo CORS para peticiones cross-origin
   mode: 'cors' as RequestMode,
 };
 
 /**
- * Maneja errores de fetch de forma centralizada
+ * Función para realizar fetch con timeout sin usar AbortController
+ * Esta función evita el problema de "signal is aborted without reason"
+ * Y ahora tiene un timeout más largo (10 segundos)
  */
-const handleFetchError = (error: unknown, endpoint: string) => {
-  console.error(`Error fetching from ${endpoint}:`, error);
-  return null; // Devolvemos null para manejar de forma segura en los componentes
+const fetchWithTimeout = async (url: string, options = {}, timeout = 10000): Promise<Response> => {
+  console.log(`🔄 Realizando petición a: ${url}`);
+  
+  // Intentar al menos 2 veces con un retraso entre intentos
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      // Usar Promise.race para implementar timeout
+      return await Promise.race([
+        fetch(url, options),
+        new Promise<Response>((_, reject) => {
+          // Solo rechazar después del timeout
+          setTimeout(() => {
+            console.log(`⏱️ Timeout (${timeout}ms) para ${url}, intento ${attempt}`);
+            reject(new Error(`Tiempo de espera agotado (${timeout}ms)`));
+          }, timeout);
+        }) as Promise<Response>
+      ]);
+    } catch (error) {
+      // Si estamos en el último intento, propagar el error
+      if (attempt >= 2) throw error;
+      
+      // Esperar un poco antes de reintentar
+      console.log(`⚠️ Error en intento ${attempt}, esperando 1 segundo antes de reintentar...`);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+  
+  // Esto nunca debería ejecutarse debido al manejo anterior
+  throw new Error('Error inesperado en fetchWithTimeout');
 };
 
 /**
- * Prueba la conexión con el backend
+ * Verificar la conexión con el backend
  */
 export const testBackendConnection = async (): Promise<boolean> => {
   try {
-    console.log(`Probando conexión directa a ${API_BASE_URL}/detections/volume/total`);
+    console.log(`Verificando conexión a ${API_BASE_URL}/detections/volume/total`);
     
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-    
-    const response = await fetch(`${API_BASE_URL}/detections/volume/total`, {
-      ...fetchConfig,
-      signal: controller.signal
-    });
-    
-    clearTimeout(timeoutId);
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/detections/volume/total`, 
+      fetchConfig, 
+      10000 // 10 segundos de timeout
+    );
     
     if (response.ok) {
-      console.log('Conexión directa exitosa:', await response.json());
+      console.log('✅ Conexión exitosa al backend');
       return true;
     } else {
-      console.error(`Conexión directa fallida: ${response.status} ${response.statusText}`);
+      console.error(`❌ Conexión fallida: ${response.status} ${response.statusText}`);
       return false;
     }
   } catch (error) {
-    console.error('Error en conexión directa:', error);
+    console.error('❌ Error en conexión directa:', error);
+    
+    if (error instanceof Error) {
+      // Detección de problemas comunes
+      if (error.message.includes('Tiempo de espera agotado')) {
+        console.warn('⚠️ El backend no responde a tiempo. Posibles causas:');
+        console.warn('1. El servidor Spring Boot no está ejecutándose');
+        console.warn('2. La base de datos MySQL está lenta o no responde');
+        console.warn('3. El backend está procesando muchas peticiones');
+      } else if (error.message.includes('Failed to fetch')) {
+        console.warn('⚠️ No se puede conectar al backend. Posibles causas:');
+        console.warn('1. El servidor Spring Boot no está ejecutándose');
+        console.warn('2. La URL del backend es incorrecta');
+        console.warn('3. Hay un problema de red o firewall');
+      }
+    }
+    
     return false;
   }
 };
 
 /**
- * Función genérica para fetching con timeout y reintentos
+ * Función optimizada para fetching con reintentos
  */
-const fetchWithRetry = async (endpoint: string, retries = 2, timeout = 10000) => {
+const fetchWithRetry = async (endpoint: string, retries = 2): Promise<any> => {
   let attempts = 0;
+  let lastError: any = null;
   
-  const executeFetch = async (): Promise<any> => {
+  // Aumentar el tiempo de espera a 15 segundos para endpoints específicos que pueden ser lentos
+  const slowEndpoints = [
+    '/detections/temporal/evolution',
+    '/detections/temporal/speed'
+  ];
+  
+  const timeout = slowEndpoints.some(slow => endpoint.includes(slow)) ? 15000 : 10000;
+  
+  while (attempts <= retries) {
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      console.log(`🔄 Intento ${attempts + 1} para ${endpoint}`);
       
-      console.log(`Fetching data from: ${API_BASE_URL}${endpoint}`);
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        ...fetchConfig,
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
+      const response = await fetchWithTimeout(
+        `${API_BASE_URL}${endpoint}`,
+        fetchConfig,
+        timeout 
+      );
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP error: ${response.status} ${response.statusText}`);
       }
       
       const data = await response.json();
-      console.log(`Data received from ${endpoint}:`, data);
+      console.log(`✅ Datos recibidos de ${endpoint} (${Object.keys(data).length} campos)`);
       return data;
     } catch (error) {
       attempts++;
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        console.warn(`Request to ${endpoint} timed out after ${timeout}ms`);
-      }
+      lastError = error;
       
       if (attempts <= retries) {
-        console.log(`Retry attempt ${attempts} for ${endpoint}`);
-        return executeFetch();
+        console.log(`⚠️ Error en intento ${attempts}, reintentando...`);
+        // Aumentar la pausa antes de reintentar
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
-      
-      return handleFetchError(error, endpoint);
     }
-  };
+  }
   
-  return executeFetch();
+  console.error(`❌ Error final después de ${attempts} intentos:`, lastError);
+  
+  // Para una mejor experiencia de usuario, usar datos de respaldo en lugar de lanzar error
+  console.warn('⚠️ Usando datos de respaldo para:', endpoint);
+  
+  // Determinar qué datos de respaldo devolver según el endpoint
+  switch (true) {
+    case endpoint.includes('/volume/total'):
+      return getBackupData().totalVolume;
+    case endpoint.includes('/volume/by-lane'):
+      return getBackupData().volumeByLane;
+    case endpoint.includes('/patterns/hourly'):
+      return getBackupData().hourlyPatterns;
+    case endpoint.includes('/lanes/speed'):
+      return getBackupData().avgSpeedByLane;
+    case endpoint.includes('/lanes/bottlenecks'):
+      return getBackupData().bottlenecks;
+    case endpoint.includes('/temporal/evolution'):
+      return getBackupData().trafficEvolution;
+    case endpoint.includes('/temporal/speed'):
+      return getBackupData().speedEvolution;
+    case endpoint.includes('/vehicle-types/dominance'):
+      return getBackupData().vehicleTypeDominance;
+    default:
+      // Para otros endpoints, devolver un objeto vacío
+      return {};
+  }
 };
 
 // Interfaces para los diferentes tipos de datos
@@ -157,85 +225,11 @@ export interface DashboardData {
   vehicleTypeDominance: VehicleTypeDominanceData;
 }
 
-// Función para verificar si un objeto es válido y tiene propiedades
-function isValidData(data: any): boolean {
-  return data && typeof data === 'object' && Object.keys(data).length > 0;
-}
-
 /**
- * Función para obtener todos los datos del dashboard de forma paralela
+ * Datos de respaldo para cuando la API no está disponible
  */
-export const fetchData = async (): Promise<DashboardData> => {
-  try {
-    console.log('Fetching all dashboard data...');
-    
-    // Intentamos primero una conexión directa para diagnóstico
-    const directConnectionOk = await testBackendConnection();
-    console.log(`Conexión directa al backend: ${directConnectionOk ? 'OK' : 'Fallida'}`);
-    
-    if (!directConnectionOk) {
-      console.error('No se pudo conectar directamente al backend. Usando datos de respaldo.');
-      return getBackupData();
-    }
-    
-    const [
-      totalVolume,
-      volumeByLane,
-      hourlyPatterns,
-      avgSpeedByLane,
-      bottlenecks,
-      trafficEvolution,
-      speedEvolution,
-      vehicleTypeDominance
-    ] = await Promise.allSettled([
-      fetchWithRetry('/detections/volume/total'),
-      fetchWithRetry('/detections/volume/by-lane'),
-      fetchWithRetry('/detections/patterns/hourly'),
-      fetchWithRetry('/detections/lanes/speed'),
-      fetchWithRetry('/detections/lanes/bottlenecks'),
-      fetchWithRetry('/detections/temporal/evolution'),
-      fetchWithRetry('/detections/temporal/speed'),
-      fetchWithRetry('/detections/vehicle-types/dominance')
-    ]);
-    
-    // Procesa los resultados y proporciona valores predeterminados para casos fallidos
-    const processedData: DashboardData = {
-      totalVolume: totalVolume.status === 'fulfilled' && isValidData(totalVolume.value) ? 
-        totalVolume.value : { hourly: {}, daily: {}, total: { "car": 25, "bus": 5, "truck": 10 } },
-      
-      volumeByLane: volumeByLane.status === 'fulfilled' && isValidData(volumeByLane.value) ? 
-        volumeByLane.value : getBackupData().volumeByLane,
-      
-      hourlyPatterns: hourlyPatterns.status === 'fulfilled' && isValidData(hourlyPatterns.value) ? 
-        hourlyPatterns.value : getBackupData().hourlyPatterns,
-      
-      avgSpeedByLane: avgSpeedByLane.status === 'fulfilled' && isValidData(avgSpeedByLane.value) ? 
-        avgSpeedByLane.value : getBackupData().avgSpeedByLane,
-      
-      bottlenecks: bottlenecks.status === 'fulfilled' && Array.isArray(bottlenecks.value) ? 
-        bottlenecks.value : getBackupData().bottlenecks,
-      
-      trafficEvolution: trafficEvolution.status === 'fulfilled' && isValidData(trafficEvolution.value) ? 
-        trafficEvolution.value : getBackupData().trafficEvolution,
-      
-      speedEvolution: speedEvolution.status === 'fulfilled' && isValidData(speedEvolution.value) ? 
-        speedEvolution.value : getBackupData().speedEvolution,
-      
-      vehicleTypeDominance: vehicleTypeDominance.status === 'fulfilled' && isValidData(vehicleTypeDominance.value) ? 
-        vehicleTypeDominance.value : getBackupData().vehicleTypeDominance
-    };
-    
-    console.log('Processed dashboard data:', processedData);
-    return processedData;
-  } catch (error) {
-    console.error('Error fetching dashboard data:', error);
-    // Devuelve datos de respaldo en caso de error
-    return getBackupData();
-  }
-};
-
-// Datos de respaldo para cuando la API no está disponible
-function getBackupData(): DashboardData {
+const getBackupData = (): DashboardData => {
+  console.log("📄 Generando datos de respaldo...");
   return {
     totalVolume: { 
       hourly: { "morning": 150, "afternoon": 200, "evening": 120 },
@@ -283,101 +277,224 @@ function getBackupData(): DashboardData {
       "truck": 21.7
     }
   };
-}
+};
 
-// Funciones individuales para endpoints específicos
+/**
+ * Función para obtener todos los datos del dashboard
+ */
+export const fetchData = async (): Promise<DashboardData> => {
+  console.log('🔄 Iniciando fetchData para obtener todos los datos...');
+  
+  try {
+    // Verificar primero si hay conexión con el backend
+    const connectionOk = await testBackendConnection();
+    console.log(`🌐 Conexión directa al backend: ${connectionOk ? '✅ OK' : '❌ Fallida'}`);
+    
+    if (!connectionOk) {
+      console.warn('⚠️ Usando datos de respaldo debido a error de conexión');
+      return getBackupData();
+    }
+    
+    try {
+      // Fetch individual para cada endpoint, pero usar datos de respaldo si alguno falla
+      console.log('📊 Obteniendo datos del dashboard...');
+      
+      // Usar Promise.allSettled para obtener todos los datos incluso si algunos fallan
+      const results = await Promise.allSettled([
+        fetchWithRetry('/detections/volume/total'),
+        fetchWithRetry('/detections/volume/by-lane'),
+        fetchWithRetry('/detections/patterns/hourly'),
+        fetchWithRetry('/detections/lanes/speed'),
+        fetchWithRetry('/detections/lanes/bottlenecks'),
+        fetchWithRetry('/detections/temporal/evolution'),
+        fetchWithRetry('/detections/temporal/speed'),
+        fetchWithRetry('/detections/vehicle-types/dominance')
+      ]);
+      
+      // Obtener resultados o datos de respaldo para cada endpoint
+      const [
+        totalVolumeResult,
+        volumeByLaneResult,
+        hourlyPatternsResult,
+        avgSpeedByLaneResult,
+        bottlenecksResult,
+        trafficEvolutionResult,
+        speedEvolutionResult,
+        vehicleTypeDominanceResult
+      ] = results;
+      
+      // Función auxiliar para obtener el valor o datos de respaldo
+      const getValue = (result: PromiseSettledResult<any>, fallback: any) => {
+        return result.status === 'fulfilled' ? result.value : fallback;
+      };
+      
+      const backupData = getBackupData();
+      
+      // Construir objeto de datos con resultados exitosos o respaldos
+      const dashboardData = {
+        totalVolume: getValue(totalVolumeResult, backupData.totalVolume),
+        volumeByLane: getValue(volumeByLaneResult, backupData.volumeByLane),
+        hourlyPatterns: getValue(hourlyPatternsResult, backupData.hourlyPatterns),
+        avgSpeedByLane: getValue(avgSpeedByLaneResult, backupData.avgSpeedByLane),
+        bottlenecks: getValue(bottlenecksResult, backupData.bottlenecks),
+        trafficEvolution: getValue(trafficEvolutionResult, backupData.trafficEvolution),
+        speedEvolution: getValue(speedEvolutionResult, backupData.speedEvolution),
+        vehicleTypeDominance: getValue(vehicleTypeDominanceResult, backupData.vehicleTypeDominance)
+      };
+      
+      // Contar cuántos endpoints tuvieron éxito
+      const successCount = results.filter(r => r.status === 'fulfilled').length;
+      console.log(`✅ ${successCount} de 8 endpoints respondieron correctamente`);
+      
+      return dashboardData;
+    } catch (error) {
+      console.error('❌ Error al obtener los datos del dashboard:', error);
+      return getBackupData();
+    }
+  } catch (error) {
+    console.error('❌ Error general en fetchData:', error);
+    return getBackupData();
+  }
+};
+
+// Funciones para cada endpoint específico - ahora usan fetchWithRetry con valores de respaldo
 export const fetchTotalVehicleVolume = async (): Promise<TotalVolumeData> => {
-  const result = await fetchWithRetry('/detections/volume/total');
-  return result || { hourly: {}, daily: {}, total: { "car": 25, "bus": 5, "truck": 10 } };
+  try {
+    return await fetchWithRetry('/detections/volume/total');
+  } catch (error) {
+    return getBackupData().totalVolume;
+  }
 };
 
 export const fetchVehicleVolumeByLane = async (): Promise<LaneVehicleData> => {
-  const result = await fetchWithRetry('/detections/volume/by-lane');
-  return result || getBackupData().volumeByLane;
+  try {
+    return await fetchWithRetry('/detections/volume/by-lane');
+  } catch (error) {
+    return getBackupData().volumeByLane;
+  }
 };
 
 export const fetchHourlyPatterns = async (): Promise<HourlyPatternsData> => {
-  const result = await fetchWithRetry('/detections/patterns/hourly');
-  return result || getBackupData().hourlyPatterns;
+  try {
+    return await fetchWithRetry('/detections/patterns/hourly');
+  } catch (error) {
+    return getBackupData().hourlyPatterns;
+  }
 };
 
 export const fetchAvgSpeedByLane = async (): Promise<SpeedByLaneData> => {
-  const result = await fetchWithRetry('/detections/lanes/speed');
-  return result || getBackupData().avgSpeedByLane;
+  try {
+    return await fetchWithRetry('/detections/lanes/speed');
+  } catch (error) {
+    return getBackupData().avgSpeedByLane;
+  }
 };
 
 export const fetchBottlenecks = async (): Promise<BottleneckItem[]> => {
-  const result = await fetchWithRetry('/detections/lanes/bottlenecks');
-  return result || getBackupData().bottlenecks;
+  try {
+    return await fetchWithRetry('/detections/lanes/bottlenecks');
+  } catch (error) {
+    return getBackupData().bottlenecks;
+  }
 };
 
 export const fetchTrafficEvolution = async (): Promise<TrafficEvolutionData> => {
-  const result = await fetchWithRetry('/detections/temporal/evolution');
-  return result || getBackupData().trafficEvolution;
+  try {
+    return await fetchWithRetry('/detections/temporal/evolution');
+  } catch (error) {
+    return getBackupData().trafficEvolution;
+  }
 };
 
 export const fetchSpeedEvolution = async (): Promise<SpeedEvolutionData> => {
-  const result = await fetchWithRetry('/detections/temporal/speed');
-  return result || getBackupData().speedEvolution;
+  try {
+    return await fetchWithRetry('/detections/temporal/speed');
+  } catch (error) {
+    return getBackupData().speedEvolution;
+  }
 };
 
 export const fetchVehicleTypeDominance = async (): Promise<VehicleTypeDominanceData> => {
-  const result = await fetchWithRetry('/detections/vehicle-types/dominance');
-  return result || getBackupData().vehicleTypeDominance;
+  try {
+    return await fetchWithRetry('/detections/vehicle-types/dominance');
+  } catch (error) {
+    return getBackupData().vehicleTypeDominance;
+  }
 };
 
-// 5. Estructuras de datos
+// Métodos para estructuras de datos - ahora con mejor manejo de errores
 export const fetchArrayData = async (): Promise<number[]> => {
-  const result = await fetchWithRetry('/detections/structures/array');
-  return result || [45, 23, 78, 12, 90, 32, 56, 67];
+  try {
+    return await fetchWithRetry('/detections/structures/array');
+  } catch (error) {
+    return [45, 23, 78, 12, 90, 32, 56, 67];
+  }
 };
 
 export const fetchLinkedListData = async () => {
-  const result = await fetchWithRetry('/detections/structures/linked-list');
-  return result || generateMockListData(8);
+  try {
+    return await fetchWithRetry('/detections/structures/linked-list');
+  } catch (error) {
+    return generateMockListData(8);
+  }
 };
 
 export const fetchDoubleLinkedListData = async () => {
-  const result = await fetchWithRetry('/detections/structures/double-linked-list');
-  return result || generateMockListData(8);
+  try {
+    return await fetchWithRetry('/detections/structures/double-linked-list');
+  } catch (error) {
+    return generateMockListData(8);
+  }
 };
 
 export const fetchCircularDoubleLinkedListData = async () => {
-  const result = await fetchWithRetry('/detections/structures/circular-double-linked-list');
-  return result || generateMockListData(8);
+  try {
+    return await fetchWithRetry('/detections/structures/circular-double-linked-list');
+  } catch (error) {
+    return generateMockListData(8);
+  }
 };
 
 export const fetchStackData = async () => {
-  const result = await fetchWithRetry('/detections/structures/stack');
-  return result || generateMockListData(8);
+  try {
+    return await fetchWithRetry('/detections/structures/stack');
+  } catch (error) {
+    return generateMockListData(8);
+  }
 };
 
 export const fetchQueueData = async () => {
-  const result = await fetchWithRetry('/detections/structures/queue');
-  return result || generateMockListData(8);
+  try {
+    return await fetchWithRetry('/detections/structures/queue');
+  } catch (error) {
+    return generateMockListData(8);
+  }
 };
 
 export const fetchTreeData = async () => {
-  const result = await fetchWithRetry('/detections/structures/tree');
-  return result || {
-    value: "Root",
-    children: [
-      {
-        value: "A",
-        children: [
-          { value: "A1", children: null },
-          { value: "A2", children: null }
-        ]
-      },
-      {
-        value: "B",
-        children: [
-          { value: "B1", children: null },
-          { value: "B2", children: null }
-        ]
-      }
-    ]
-  };
+  try {
+    return await fetchWithRetry('/detections/structures/tree');
+  } catch (error) {
+    return {
+      value: "Root",
+      children: [
+        {
+          value: "A",
+          children: [
+            { value: "A1", children: null },
+            { value: "A2", children: null }
+          ]
+        },
+        {
+          value: "B",
+          children: [
+            { value: "B1", children: null },
+            { value: "B2", children: null }
+          ]
+        }
+      ]
+    };
+  }
 };
 
 // Función auxiliar para generar datos de ejemplo para estructuras de lista

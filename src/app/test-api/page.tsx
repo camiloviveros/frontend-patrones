@@ -1,114 +1,205 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import {
-  fetchTotalVehicleVolume,
-  fetchVehicleVolumeByLane,
-  fetchHourlyPatterns,
-  fetchAvgSpeedByLane,
-  fetchBottlenecks,
-  fetchTrafficEvolution,
-  fetchSpeedEvolution,
-  fetchVehicleTypeDominance,
-  fetchArrayData,
-  fetchLinkedListData,
-  fetchDoubleLinkedListData,
-  fetchCircularDoubleLinkedListData,
-  fetchStackData,
-  fetchQueueData,
-  fetchTreeData
-} from '@/lib/api';
+import { useState } from 'react';
 
-export default function ApiTestPage() {
-  const [results, setResults] = useState<Record<string, any>>({});
-  const [loading, setLoading] = useState<Record<string, boolean>>({});
-  const [errors, setErrors] = useState<Record<string, string>>({});
+export default function ApiTest() {
+  const [testResults, setTestResults] = useState<{[key: string]: any}>({});
+  const [isLoading, setIsLoading] = useState<{[key: string]: boolean}>({});
+  const [error, setError] = useState<string | null>(null);
+
+  // URL bases para probar
+  const urlBases = [
+    'http://localhost:8080/api',
+    'http://127.0.0.1:8080/api',
+    window.location.origin + '/api' // Base URL relativa
+  ];
   
-  const testEndpoint = async (name: string, fetchFunction: () => Promise<any>) => {
-    setLoading(prev => ({ ...prev, [name]: true }));
-    setErrors(prev => ({ ...prev, [name]: '' }));
+  // Endpoints a probar
+  const endpoints = [
+    '/detections/volume/total',
+    '/detections/volume/by-lane',
+    '/detections/lanes/speed',
+    '/detections/temporal/evolution'
+  ];
+
+  const testEndpoint = async (baseUrl: string, endpoint: string) => {
+    const testId = `${baseUrl}${endpoint}`;
+    setIsLoading(prev => ({ ...prev, [testId]: true }));
     
     try {
-      const data = await fetchFunction();
-      setResults(prev => ({ ...prev, [name]: data }));
-      console.log(`[${name}] Data:`, data);
-    } catch (error) {
-      console.error(`[${name}] Error:`, error);
-      setErrors(prev => ({ 
-        ...prev, 
-        [name]: error instanceof Error ? error.message : 'Error desconocido' 
-      }));
+      console.log(`Probando conexión a ${baseUrl}${endpoint}`);
+      
+      const response = await fetch(`${baseUrl}${endpoint}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        mode: 'cors'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setTestResults(prev => ({ ...prev, [testId]: { 
+          success: true, 
+          status: response.status,
+          data: JSON.stringify(data).substring(0, 200) + '...' 
+        }}));
+      } else {
+        setTestResults(prev => ({ ...prev, [testId]: { 
+          success: false, 
+          status: response.status,
+          statusText: response.statusText
+        }}));
+      }
+    } catch (err) {
+      console.error(`Error probando ${testId}:`, err);
+      setTestResults(prev => ({ ...prev, [testId]: { 
+        success: false, 
+        error: err instanceof Error ? err.message : 'Error desconocido'
+      }}));
     } finally {
-      setLoading(prev => ({ ...prev, [name]: false }));
+      setIsLoading(prev => ({ ...prev, [testId]: false }));
     }
   };
-  
-  const testAll = async () => {
-    // Dashboard Data
-    testEndpoint('totalVolume', fetchTotalVehicleVolume);
-    testEndpoint('volumeByLane', fetchVehicleVolumeByLane);
-    testEndpoint('hourlyPatterns', fetchHourlyPatterns);
-    testEndpoint('avgSpeedByLane', fetchAvgSpeedByLane);
-    testEndpoint('bottlenecks', fetchBottlenecks);
-    testEndpoint('trafficEvolution', fetchTrafficEvolution);
-    testEndpoint('speedEvolution', fetchSpeedEvolution);
-    testEndpoint('vehicleTypeDominance', fetchVehicleTypeDominance);
+
+  const testAllEndpoints = () => {
+    setError(null);
     
-    // Estructura de datos
-    testEndpoint('arrayData', fetchArrayData);
-    testEndpoint('linkedList', fetchLinkedListData);
-    testEndpoint('doubleLinkedList', fetchDoubleLinkedListData);
-    testEndpoint('circularDoubleLinkedList', fetchCircularDoubleLinkedListData);
-    testEndpoint('stack', fetchStackData);
-    testEndpoint('queue', fetchQueueData);
-    testEndpoint('tree', fetchTreeData);
+    urlBases.forEach(baseUrl => {
+      endpoints.forEach(endpoint => {
+        testEndpoint(baseUrl, endpoint);
+      });
+    });
   };
-  
-  useEffect(() => {
-    // Auto-test on load
-    testAll();
-  }, []);
-  
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6 text-center">Test de APIs</h1>
+
+  // Verificar manualmente si el backend está en línea
+  const checkBackendStatus = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/api/detections/volume/total', {
+        mode: 'cors',
+        headers: { 'Accept': 'application/json' }
+      });
       
-      <div className="mb-6">
+      if (response.ok) {
+        return `Backend en línea (status ${response.status})`;
+      } else {
+        return `Backend disponible pero responde con error (status ${response.status})`;
+      }
+    } catch (error) {
+      return 'Backend no disponible';
+    }
+  };
+
+  return (
+    <div className="container mx-auto p-4">
+      <div className="bg-white shadow-md rounded-lg p-6 mb-6">
+        <h1 className="text-2xl font-bold mb-4">Prueba de Conexión API</h1>
+        <p className="mb-4">Esta herramienta verifica la conexión con el backend desde diferentes URLs y muestra los resultados.</p>
+        
         <button 
-          onClick={testAll}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-6"
+          onClick={testAllEndpoints}
         >
           Probar Todos los Endpoints
         </button>
+        
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-2">Información de Red</h2>
+          <p><strong>URL actual:</strong> {window.location.href}</p>
+          <p><strong>Hostname:</strong> {window.location.hostname}</p>
+          <p><strong>Backend esperado:</strong> http://localhost:8080</p>
+          <p><strong>Estado backend:</strong> <span id="backend-status">Verificando...</span></p>
+          <script dangerouslySetInnerHTML={{
+            __html: `
+              async function updateStatus() {
+                try {
+                  const response = await fetch('http://localhost:8080/api/detections/volume/total', {
+                    mode: 'cors',
+                    headers: { 'Accept': 'application/json' }
+                  });
+                  
+                  if (response.ok) {
+                    document.getElementById('backend-status').textContent = 'En línea';
+                    document.getElementById('backend-status').className = 'text-green-600 font-bold';
+                  } else {
+                    document.getElementById('backend-status').textContent = 'Responde con error ' + response.status;
+                    document.getElementById('backend-status').className = 'text-orange-600 font-bold';
+                  }
+                } catch (error) {
+                  document.getElementById('backend-status').textContent = 'No disponible';
+                  document.getElementById('backend-status').className = 'text-red-600 font-bold';
+                }
+              }
+              updateStatus();
+            `
+          }} />
+        </div>
+        
+        <div className="grid grid-cols-1 gap-4">
+          {urlBases.map(baseUrl => (
+            <div key={baseUrl} className="mb-6 border rounded-lg p-4">
+              <h2 className="text-lg font-semibold mb-2">{baseUrl}</h2>
+              <div className="space-y-4">
+                {endpoints.map(endpoint => {
+                  const testId = `${baseUrl}${endpoint}`;
+                  const result = testResults[testId];
+                  
+                  return (
+                    <div key={endpoint} className="border rounded p-3">
+                      <p className="font-medium">{endpoint}</p>
+                      
+                      {isLoading[testId] ? (
+                        <p className="text-gray-500">Probando...</p>
+                      ) : result ? (
+                        <div>
+                          {result.success ? (
+                            <div className="text-green-600">
+                              <p>✅ Éxito (status {result.status})</p>
+                              <p className="text-xs mt-1 text-gray-600 overflow-hidden overflow-ellipsis">
+                                {result.data}
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="text-red-600">
+                              <p>❌ Error: {result.error || `HTTP ${result.status} ${result.statusText}`}</p>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-gray-400">No probado</p>
+                      )}
+                      
+                      <button 
+                        className="mt-2 bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm py-1 px-2 rounded"
+                        onClick={() => testEndpoint(baseUrl, endpoint)}
+                      >
+                        Probar endpoint
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {Object.keys(loading).map(endpoint => (
-          <div key={endpoint} className="border rounded-lg p-4">
-            <h2 className="text-lg font-semibold">{endpoint}</h2>
-            
-            {loading[endpoint] ? (
-              <div className="mt-2 flex items-center">
-                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500 mr-2"></div>
-                <span>Cargando...</span>
-              </div>
-            ) : errors[endpoint] ? (
-              <div className="mt-2 text-red-500">
-                <p className="font-semibold">Error:</p>
-                <p>{errors[endpoint]}</p>
-              </div>
-            ) : results[endpoint] ? (
-              <div className="mt-2">
-                <p className="font-semibold text-green-600">Datos recibidos correctamente ✓</p>
-                <div className="mt-2 max-h-40 overflow-auto bg-gray-50 p-2 rounded text-xs">
-                  <pre>{JSON.stringify(results[endpoint], null, 2)}</pre>
-                </div>
-              </div>
-            ) : (
-              <div className="mt-2 text-gray-500">Sin datos</div>
-            )}
-          </div>
-        ))}
+      <div className="bg-white shadow-md rounded-lg p-6">
+        <h2 className="text-xl font-bold mb-4">Solución de problemas comunes</h2>
+        <ul className="list-disc pl-5 space-y-2">
+          <li>
+            <strong>CORS no configurado:</strong> Si ves errores relacionados con CORS, asegúrate de que el backend tenga la configuración CORS correcta.
+          </li>
+          <li>
+            <strong>Backend no disponible:</strong> Verifica que el servidor Spring Boot esté ejecutándose en http://localhost:8080.
+          </li>
+          <li>
+            <strong>Problema de red:</strong> Asegúrate de que no haya restricciones de red que bloqueen las conexiones entre el frontend y el backend.
+          </li>
+          <li>
+            <strong>Problemas de ruta:</strong> Confirma que las rutas de API sean correctas y que devuelvan datos JSON válidos.
+          </li>
+        </ul>
       </div>
     </div>
   );
