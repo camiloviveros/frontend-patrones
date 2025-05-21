@@ -1,92 +1,238 @@
 // src/lib/api.ts
 // Configuración base para fetch
-const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = '/api'; // Cambiado para usar el proxy de Next.js
 
+/**
+ * Configuración de fetch para todas las peticiones
+ */
 const fetchConfig = {
   headers: {
     'Content-Type': 'application/json',
   },
 };
 
-// Función para manejar errores en las peticiones
-const handleFetchError = (error: unknown) => {
-  console.error('Error en la petición:', error);
-  throw error;
+/**
+ * Maneja errores de fetch de forma centralizada
+ */
+const handleFetchError = (error: unknown, endpoint: string) => {
+  console.error(`Error fetching from ${endpoint}:`, error);
+  // Si es necesario, aquí podrías integrar algún servicio de logging como Sentry
+  return null; // Devolvemos null para manejar de forma segura en los componentes
 };
 
-// Función genérica para fetching
-const fetchData = async (endpoint: string) => {
+/**
+ * Función genérica para fetching con timeout y reintentos
+ */
+const fetchWithRetry = async (endpoint: string, retries = 2, timeout = 5000) => {
+  let attempts = 0;
+  
+  const executeFetch = async (): Promise<any> => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        ...fetchConfig,
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      attempts++;
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        console.warn(`Request to ${endpoint} timed out`);
+      }
+      
+      if (attempts <= retries) {
+        console.log(`Retry attempt ${attempts} for ${endpoint}`);
+        return executeFetch();
+      }
+      
+      return handleFetchError(error, endpoint);
+    }
+  };
+  
+  return executeFetch();
+};
+
+// Interfaces para los diferentes tipos de datos
+export interface TotalVolumeData {
+  hourly: Record<string, number>;
+  daily: Record<string, number>;
+  total: Record<string, number>;
+}
+
+export interface VehicleCounts {
+  [vehicleType: string]: number;
+}
+
+export interface LaneVehicleData {
+  [lane: string]: VehicleCounts;
+}
+
+export interface HourlyPatternsData {
+  [hour: string]: number;
+}
+
+export interface SpeedByLaneData {
+  [lane: string]: number;
+}
+
+export interface BottleneckItem {
+  lane: string;
+  avgSpeed: number;
+  totalVehicles: number;
+  heavyVehicles: number;
+}
+
+export interface TrafficEvolutionData {
+  timestamps: string[];
+  car: number[];
+  bus: number[];
+  truck: number[];
+}
+
+export interface SpeedEvolutionData {
+  timestamps: string[];
+  lane_1: number[];
+  lane_2: number[];
+  lane_3: number[];
+}
+
+export interface VehicleTypeDominanceData {
+  [vehicleType: string]: number;
+}
+
+// Interfaz para el objeto data completo
+export interface DashboardData {
+  totalVolume: TotalVolumeData;
+  volumeByLane: LaneVehicleData;
+  hourlyPatterns: HourlyPatternsData;
+  avgSpeedByLane: SpeedByLaneData;
+  bottlenecks: BottleneckItem[];
+  trafficEvolution: TrafficEvolutionData;
+  speedEvolution: SpeedEvolutionData;
+  vehicleTypeDominance: VehicleTypeDominanceData;
+}
+
+/**
+ * Función para obtener todos los datos del dashboard de forma paralela
+ */
+export const fetchData = async (): Promise<DashboardData> => {
   try {
-    console.log(`Fetching data from: ${API_BASE_URL}${endpoint}`);
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, fetchConfig);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    return await response.json();
+    console.log('Fetching all dashboard data...');
+    
+    const [
+      totalVolume,
+      volumeByLane,
+      hourlyPatterns,
+      avgSpeedByLane,
+      bottlenecks,
+      trafficEvolution,
+      speedEvolution,
+      vehicleTypeDominance
+    ] = await Promise.allSettled([
+      fetchWithRetry('/detections/volume/total'),
+      fetchWithRetry('/detections/volume/by-lane'),
+      fetchWithRetry('/detections/patterns/hourly'),
+      fetchWithRetry('/detections/lanes/speed'),
+      fetchWithRetry('/detections/lanes/bottlenecks'),
+      fetchWithRetry('/detections/temporal/evolution'),
+      fetchWithRetry('/detections/temporal/speed'),
+      fetchWithRetry('/detections/vehicle-types/dominance')
+    ]);
+    
+    // Procesa los resultados y proporciona valores predeterminados para casos fallidos
+    return {
+      totalVolume: totalVolume.status === 'fulfilled' ? totalVolume.value : { hourly: {}, daily: {}, total: {} },
+      volumeByLane: volumeByLane.status === 'fulfilled' ? volumeByLane.value : {},
+      hourlyPatterns: hourlyPatterns.status === 'fulfilled' ? hourlyPatterns.value : {},
+      avgSpeedByLane: avgSpeedByLane.status === 'fulfilled' ? avgSpeedByLane.value : {},
+      bottlenecks: bottlenecks.status === 'fulfilled' ? bottlenecks.value : [],
+      trafficEvolution: trafficEvolution.status === 'fulfilled' ? trafficEvolution.value : { timestamps: [], car: [], bus: [], truck: [] },
+      speedEvolution: speedEvolution.status === 'fulfilled' ? speedEvolution.value : { timestamps: [], lane_1: [], lane_2: [], lane_3: [] },
+      vehicleTypeDominance: vehicleTypeDominance.status === 'fulfilled' ? vehicleTypeDominance.value : {}
+    };
   } catch (error) {
-    return handleFetchError(error);
+    console.error('Error fetching dashboard data:', error);
+    // Devuelve datos vacíos como respaldo
+    return {
+      totalVolume: { hourly: {}, daily: {}, total: {} },
+      volumeByLane: {},
+      hourlyPatterns: {},
+      avgSpeedByLane: {},
+      bottlenecks: [],
+      trafficEvolution: { timestamps: [], car: [], bus: [], truck: [] },
+      speedEvolution: { timestamps: [], lane_1: [], lane_2: [], lane_3: [] },
+      vehicleTypeDominance: {}
+    };
   }
 };
 
-// 1. Análisis de tráfico general
-export const fetchTotalVehicleVolume = async () => {
-  return fetchData('/api/detections/volume/total');
+// Funciones individuales para endpoints específicos
+export const fetchTotalVehicleVolume = async (): Promise<TotalVolumeData> => {
+  return fetchWithRetry('/detections/volume/total') || { hourly: {}, daily: {}, total: {} };
 };
 
-export const fetchVehicleVolumeByLane = async () => {
-  return fetchData('/api/detections/volume/by-lane');
+export const fetchVehicleVolumeByLane = async (): Promise<LaneVehicleData> => {
+  return fetchWithRetry('/detections/volume/by-lane') || {};
 };
 
-export const fetchHourlyPatterns = async () => {
-  return fetchData('/api/detections/patterns/hourly');
+export const fetchHourlyPatterns = async (): Promise<HourlyPatternsData> => {
+  return fetchWithRetry('/detections/patterns/hourly') || {};
 };
 
-// 2. Análisis de comportamiento por carril
-export const fetchAvgSpeedByLane = async () => {
-  return fetchData('/api/detections/lanes/speed');
+export const fetchAvgSpeedByLane = async (): Promise<SpeedByLaneData> => {
+  return fetchWithRetry('/detections/lanes/speed') || {};
 };
 
-export const fetchBottlenecks = async () => {
-  return fetchData('/api/detections/lanes/bottlenecks');
+export const fetchBottlenecks = async (): Promise<BottleneckItem[]> => {
+  return fetchWithRetry('/detections/lanes/bottlenecks') || [];
 };
 
-// 3. Análisis temporal
-export const fetchTrafficEvolution = async () => {
-  return fetchData('/api/detections/temporal/evolution');
+export const fetchTrafficEvolution = async (): Promise<TrafficEvolutionData> => {
+  return fetchWithRetry('/detections/temporal/evolution') || { timestamps: [], car: [], bus: [], truck: [] };
 };
 
-export const fetchSpeedEvolution = async () => {
-  return fetchData('/api/detections/temporal/speed');
+export const fetchSpeedEvolution = async (): Promise<SpeedEvolutionData> => {
+  return fetchWithRetry('/detections/temporal/speed') || { timestamps: [], lane_1: [], lane_2: [], lane_3: [] };
 };
 
-// 4. Análisis por tipo de vehículo
-export const fetchVehicleTypeDominance = async () => {
-  return fetchData('/api/detections/vehicle-types/dominance');
+export const fetchVehicleTypeDominance = async (): Promise<VehicleTypeDominanceData> => {
+  return fetchWithRetry('/detections/vehicle-types/dominance') || {};
 };
 
 // 5. Estructuras de datos
-export const fetchArrayData = async () => {
-  return fetchData('/api/detections/structures/array');
+export const fetchArrayData = async (): Promise<number[]> => {
+  return fetchWithRetry('/detections/structures/array') || [];
 };
 
 export const fetchLinkedListData = async () => {
-  return fetchData('/api/detections/structures/linked-list');
+  return fetchWithRetry('/detections/structures/linked-list') || [];
 };
 
 export const fetchDoubleLinkedListData = async () => {
-  return fetchData('/api/detections/structures/double-linked-list');
+  return fetchWithRetry('/detections/structures/double-linked-list') || [];
 };
 
 export const fetchCircularDoubleLinkedListData = async () => {
-  return fetchData('/api/detections/structures/circular-double-linked-list');
+  return fetchWithRetry('/detections/structures/circular-double-linked-list') || [];
 };
 
 export const fetchStackData = async () => {
-  return fetchData('/api/detections/structures/stack');
+  return fetchWithRetry('/detections/structures/stack') || [];
 };
 
 export const fetchQueueData = async () => {
-  return fetchData('/api/detections/structures/queue');
+  return fetchWithRetry('/detections/structures/queue') || [];
 };
 
 export const fetchTreeData = async () => {
-  return fetchData('/api/detections/structures/tree');
+  return fetchWithRetry('/detections/structures/tree') || { value: 'Root', children: [] };
 };
