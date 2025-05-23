@@ -1,4 +1,4 @@
-// src/components/charts/TrafficEvolutionChart.tsx
+
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface TrafficData {

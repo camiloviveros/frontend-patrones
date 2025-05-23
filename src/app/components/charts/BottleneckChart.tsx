@@ -1,4 +1,4 @@
-// src/components/charts/BottleneckChart.tsx
+
 interface Bottleneck {
   lane: string;
   avgSpeed: number;

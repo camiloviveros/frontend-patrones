@@ -1,4 +1,4 @@
-// src/components/charts/LaneDistributionChart.tsx
+
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface ChartDataItem {

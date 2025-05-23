@@ -1,4 +1,4 @@
-// src/components/charts/VehicleTypeChart.tsx
+
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface VehicleData {

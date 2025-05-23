@@ -1,4 +1,4 @@
-// src/components/charts/TimePatternChart.tsx
+
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface TimePatternData {

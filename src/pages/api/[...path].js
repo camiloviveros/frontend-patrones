@@ -1,4 +1,4 @@
-// src/pages/api/[...path].js
+
 import { createProxyMiddleware } from 'http-proxy-middleware';
 
 // Configuración para API routes
