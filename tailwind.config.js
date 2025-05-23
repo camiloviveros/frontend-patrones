@@ -8,10 +8,10 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Puedes personalizar tus colores aquí
+        // personalizar tus colores aquí
       },
       fontFamily: {
-        // Puedes personalizar tus fuentes aquí
+        // personalizar tus fuentes aquí
       },
     },
   },
