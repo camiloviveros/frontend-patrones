@@ -42,7 +42,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body className={`${inter.className} antialiased`}>
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-zinc-50">
+        <div className="min-h-screen">
           <NavBar />
           
           <main className="transition-all duration-500 ease-in-out">
@@ -51,114 +51,143 @@ export default function RootLayout({
             </div>
           </main>
           
-          <footer className="bg-white/80 backdrop-blur-md py-12 border-t border-gray-200/50 mt-20">
-            <div className="container mx-auto px-4">
+          {/* Footer mejorado con tema oscuro pastel */}
+          <footer className="footer-dark py-16 mt-24">
+            <div className="container mx-auto px-6">
               {/* Logo y descripción principal */}
-              <div className="text-center mb-8">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-slate-700 to-gray-800 rounded-xl flex items-center justify-center mr-4 shadow-lg">
-                    <span className="text-white text-xl">🚦</span>
+              <div className="text-center mb-12">
+                <div className="flex items-center justify-center mb-6 animate-fade-in">
+                  <div className="w-16 h-16 bg-gradient-to-br from-amber-600 to-orange-700 rounded-2xl flex items-center justify-center mr-6 shadow-xl animate-float">
+                    <span className="text-white text-2xl">🚦</span>
                   </div>
-                  <h3 className="text-2xl font-bold text-gradient">
+                  <h3 className="text-3xl font-bold text-white">
                     Sistema de Análisis de Tráfico
                   </h3>
                 </div>
-                <p className="text-gray-600 max-w-2xl mx-auto">
+                <p className="text-slate-300 max-w-3xl mx-auto text-lg leading-relaxed">
                   Plataforma profesional de monitoreo y análisis de tráfico vehicular en tiempo real.
                   Optimizado para el análisis de patrones y la toma de decisiones basada en datos.
                 </p>
               </div>
 
               {/* Secciones del footer */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
                 {/* Tecnologías */}
-                <div>
-                  <h4 className="font-semibold text-gray-800 mb-4">Tecnologías</h4>
-                  <ul className="space-y-2 text-sm text-gray-600">
-                    <li className="flex items-center">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                      Next.js 15
+                <div className="animate-slide-in-left">
+                  <h4 className="font-semibold text-slate-200 mb-6 text-lg">Tecnologías</h4>
+                  <ul className="space-y-3 text-slate-400">
+                    <li className="flex items-center group hover:text-slate-300 transition-colors duration-300">
+                      <div className="w-3 h-3 bg-blue-500 rounded-full mr-3 group-hover:scale-110 transition-transform duration-300"></div>
+                      <span>Next.js 15</span>
                     </li>
-                    <li className="flex items-center">
-                      <span className="w-2 h-2 bg-emerald-500 rounded-full mr-2"></span>
-                      Spring Boot 3.4
+                    <li className="flex items-center group hover:text-slate-300 transition-colors duration-300">
+                      <div className="w-3 h-3 bg-emerald-500 rounded-full mr-3 group-hover:scale-110 transition-transform duration-300"></div>
+                      <span>Spring Boot 3.4</span>
                     </li>
-                    <li className="flex items-center">
-                      <span className="w-2 h-2 bg-violet-500 rounded-full mr-2"></span>
-                      TypeScript
+                    <li className="flex items-center group hover:text-slate-300 transition-colors duration-300">
+                      <div className="w-3 h-3 bg-violet-500 rounded-full mr-3 group-hover:scale-110 transition-transform duration-300"></div>
+                      <span>TypeScript</span>
                     </li>
-                    <li className="flex items-center">
-                      <span className="w-2 h-2 bg-cyan-500 rounded-full mr-2"></span>
-                      TailwindCSS
+                    <li className="flex items-center group hover:text-slate-300 transition-colors duration-300">
+                      <div className="w-3 h-3 bg-cyan-500 rounded-full mr-3 group-hover:scale-110 transition-transform duration-300"></div>
+                      <span>TailwindCSS</span>
                     </li>
                   </ul>
                 </div>
 
                 {/* Características */}
-                <div>
-                  <h4 className="font-semibold text-gray-800 mb-4">Características</h4>
-                  <ul className="space-y-2 text-sm text-gray-600">
-                    <li>🔄 Monitoreo en Tiempo Real</li>
-                    <li>📊 Análisis Predictivo</li>
-                    <li>🛣️ Gestión de Carriles</li>
-                    <li>⚡ Detección de Velocidad</li>
+                <div className="animate-slide-in-bottom" style={{ animationDelay: '0.1s' }}>
+                  <h4 className="font-semibold text-slate-200 mb-6 text-lg">Características</h4>
+                  <ul className="space-y-3 text-slate-400">
+                    <li className="flex items-center hover:text-slate-300 transition-colors duration-300">
+                      <span className="mr-3 text-lg">🔄</span>
+                      <span>Monitoreo en Tiempo Real</span>
+                    </li>
+                    <li className="flex items-center hover:text-slate-300 transition-colors duration-300">
+                      <span className="mr-3 text-lg">📊</span>
+                      <span>Análisis Predictivo</span>
+                    </li>
+                    <li className="flex items-center hover:text-slate-300 transition-colors duration-300">
+                      <span className="mr-3 text-lg">🛣️</span>
+                      <span>Gestión de Carriles</span>
+                    </li>
+                    <li className="flex items-center hover:text-slate-300 transition-colors duration-300">
+                      <span className="mr-3 text-lg">⚡</span>
+                      <span>Detección de Velocidad</span>
+                    </li>
                   </ul>
                 </div>
 
                 {/* Estructuras de Datos */}
-                <div>
-                  <h4 className="font-semibold text-gray-800 mb-4">Estructuras de Datos</h4>
-                  <ul className="space-y-2 text-sm text-gray-600">
-                    <li>📋 Arrays Optimizados</li>
-                    <li>📚 Pilas (Stack)</li>
-                    <li>📄 Colas (Queue)</li>
-                    <li>🌳 Árboles de Decisión</li>
+                <div className="animate-slide-in-bottom" style={{ animationDelay: '0.2s' }}>
+                  <h4 className="font-semibold text-slate-200 mb-6 text-lg">Estructuras de Datos</h4>
+                  <ul className="space-y-3 text-slate-400">
+                    <li className="flex items-center hover:text-slate-300 transition-colors duration-300">
+                      <span className="mr-3 text-lg">📋</span>
+                      <span>Arrays Optimizados</span>
+                    </li>
+                    <li className="flex items-center hover:text-slate-300 transition-colors duration-300">
+                      <span className="mr-3 text-lg">📚</span>
+                      <span>Pilas (Stack)</span>
+                    </li>
+                    <li className="flex items-center hover:text-slate-300 transition-colors duration-300">
+                      <span className="mr-3 text-lg">📄</span>
+                      <span>Colas (Queue)</span>
+                    </li>
+                    <li className="flex items-center hover:text-slate-300 transition-colors duration-300">
+                      <span className="mr-3 text-lg">🌳</span>
+                      <span>Árboles de Decisión</span>
+                    </li>
                   </ul>
                 </div>
 
                 {/* Estado del Sistema */}
-                <div>
-                  <h4 className="font-semibold text-gray-800 mb-4">Estado del Sistema</h4>
-                  <div className="space-y-3">
+                <div className="animate-slide-in-right">
+                  <h4 className="font-semibold text-slate-200 mb-6 text-lg">Estado del Sistema</h4>
+                  <div className="space-y-4">
                     <div className="flex items-center">
-                      <div className="w-3 h-3 bg-emerald-500 rounded-full mr-2 animate-pulse"></div>
-                      <span className="text-sm text-gray-600">Sistema Operativo</span>
+                      <div className="w-4 h-4 bg-emerald-500 rounded-full mr-3 animate-pulse shadow-lg"></div>
+                      <span className="text-slate-300 font-medium">Sistema Operativo</span>
                     </div>
-                    <div className="bg-gray-50 p-3 rounded-lg">
-                      <p className="text-xs text-gray-500">Última actualización</p>
-                      <p className="text-sm font-medium text-gray-700">
+                    <div className="bg-slate-600/50 p-4 rounded-xl backdrop-blur-sm border border-slate-600">
+                      <p className="text-xs text-slate-400 mb-1">Última actualización</p>
+                      <p className="text-sm font-medium text-slate-300">
                         {new Date().toLocaleString('es-ES')}
                       </p>
+                    </div>
+                    <div className="bg-slate-600/50 p-4 rounded-xl backdrop-blur-sm border border-slate-600">
+                      <p className="text-xs text-slate-400 mb-1">Versión del Sistema</p>
+                      <p className="text-sm font-medium text-slate-300">v2.0.0</p>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Separador */}
-              <div className="border-t border-gray-200 pt-8">
-                <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+              <div className="border-t border-slate-600 pt-8">
+                <div className="flex flex-col lg:flex-row justify-between items-center space-y-6 lg:space-y-0">
                   {/* Copyright */}
-                  <div className="text-center md:text-left">
-                    <p className="text-gray-600 text-sm">
+                  <div className="text-center lg:text-left">
+                    <p className="text-slate-300 text-lg font-medium">
                       © {new Date().getFullYear()} Sistema de Análisis de Tráfico. Todos los derechos reservados.
                     </p>
-                    <p className="text-gray-500 text-xs mt-1">
+                    <p className="text-slate-400 text-sm mt-2">
                       Plataforma desarrollada con tecnologías modernas para análisis profesional
                     </p>
                   </div>
 
                   {/* Enlaces rápidos */}
-                  <div className="flex items-center space-x-6">
+                  <div className="flex items-center space-x-8">
                     <a 
-                      href="/api-test" 
-                      className="text-sm text-gray-600 hover:text-gray-800 transition-colors duration-200"
+                      href="/test-api" 
+                      className="text-slate-300 hover:text-white transition-colors duration-300 text-lg font-medium hover:underline"
                     >
                       Diagnóstico del Sistema
                     </a>
-                    <div className="w-px h-4 bg-gray-300"></div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs text-gray-500">Versión</span>
-                      <span className="text-sm font-mono bg-gray-100 px-2 py-1 rounded text-gray-700">
+                    <div className="w-px h-6 bg-slate-500"></div>
+                    <div className="flex items-center space-x-3">
+                      <span className="text-slate-400">Versión</span>
+                      <span className="text-lg font-mono bg-slate-600 px-3 py-1 rounded-lg text-slate-200 border border-slate-500">
                         v2.0.0
                       </span>
                     </div>
@@ -167,25 +196,32 @@ export default function RootLayout({
               </div>
 
               {/* Indicadores técnicos */}
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <div className="flex flex-wrap justify-center items-center gap-6 text-xs text-gray-500">
-                  <div className="flex items-center">
-                    <span className="w-2 h-2 bg-green-400 rounded-full mr-2"></span>
-                    Frontend: Operativo
+              <div className="mt-8 pt-8 border-t border-slate-600">
+                <div className="flex flex-wrap justify-center items-center gap-8">
+                  <div className="flex items-center group">
+                    <div className="w-3 h-3 bg-green-400 rounded-full mr-3 group-hover:scale-110 transition-transform duration-300"></div>
+                    <span className="text-slate-400 group-hover:text-slate-300 transition-colors duration-300">Frontend: Operativo</span>
                   </div>
-                  <div className="flex items-center">
-                    <span className="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>
-                    API: REST/HTTP
+                  <div className="flex items-center group">
+                    <div className="w-3 h-3 bg-blue-400 rounded-full mr-3 group-hover:scale-110 transition-transform duration-300"></div>
+                    <span className="text-slate-400 group-hover:text-slate-300 transition-colors duration-300">API: REST/HTTP</span>
                   </div>
-                  <div className="flex items-center">
-                    <span className="w-2 h-2 bg-purple-400 rounded-full mr-2"></span>
-                    Base de Datos: MySQL
+                  <div className="flex items-center group">
+                    <div className="w-3 h-3 bg-purple-400 rounded-full mr-3 group-hover:scale-110 transition-transform duration-300"></div>
+                    <span className="text-slate-400 group-hover:text-slate-300 transition-colors duration-300">Base de Datos: MySQL</span>
                   </div>
-                  <div className="flex items-center">
-                    <span className="w-2 h-2 bg-orange-400 rounded-full mr-2"></span>
-                    Detección: Python/YOLO
+                  <div className="flex items-center group">
+                    <div className="w-3 h-3 bg-orange-400 rounded-full mr-3 group-hover:scale-110 transition-transform duration-300"></div>
+                    <span className="text-slate-400 group-hover:text-slate-300 transition-colors duration-300">Detección: Python/YOLO</span>
                   </div>
                 </div>
+              </div>
+
+              {/* Línea final */}
+              <div className="mt-8 pt-6 border-t border-slate-600 text-center">
+                <p className="text-slate-500 text-sm">
+                  Desarrollado con ❤️ para el análisis inteligente del tráfico vehicular
+                </p>
               </div>
             </div>
           </footer>
