@@ -15,7 +15,7 @@ export const config = {
 
 // Middleware de proxy con opciones optimizadas
 const apiProxy = createProxyMiddleware({
-  target: 'http://localhost:8080',
+  target: 'http://localhost:9090',
   changeOrigin: true,
   pathRewrite: { '^/api': '/api' },
   // Configuraciones para evitar errores ECONNRESET

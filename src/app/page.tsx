@@ -1,200 +1,272 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Dashboard from './components/Dashboard';
 import { fetchData, DashboardData, cache } from '../lib/api';
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
-  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [connectionAttempts, setConnectionAttempts] = useState(0);
-  const [loadTime, setLoadTime] = useState<number | null>(null);
-  
-  // Referencia para rastrear el tiempo de carga
-  const loadingStartTime = useRef<number | null>(null);
-  
-  // Preparar la función fetchDashboardData con useCallback para evitar recreación
+
   const fetchDashboardData = useCallback(async (forceRefresh = false) => {
-    // Comenzar el cronómetro de carga
-    loadingStartTime.current = performance.now();
-    
     try {
       setIsLoading(true);
       setError(null);
       
-      console.log(`🔄 Obteniendo datos del dashboard... ${forceRefresh ? '(Actualización forzada)' : ''}`);
       const data = await fetchData(forceRefresh);
       
-      if (!data) {
-        throw new Error('No se recibieron datos del backend');
+      const hasRealData = data && (
+        Object.keys(data.totalVolume?.total || {}).length > 0 ||
+        Object.keys(data.volumeByLane || {}).length > 0 ||
+        Object.keys(data.hourlyPatterns || {}).length > 0 ||
+        Object.keys(data.avgSpeedByLane || {}).length > 0
+      );
+
+      if (hasRealData) {
+        setDashboardData(data);
+        setLastUpdated(new Date());
+        setConnectionAttempts(0);
+      } else {
+        setError('El backend no devolvió datos válidos');
+        setConnectionAttempts(prev => prev + 1);
       }
       
-      console.log("✅ Datos recibidos correctamente");
-      setDashboardData(data);
-      setLastUpdated(new Date());
-      setConnectionAttempts(0);
-      
-      // Calcular tiempo de carga
-      if (loadingStartTime.current) {
-        const endTime = performance.now();
-        const timeMs = Math.round(endTime - loadingStartTime.current);
-        setLoadTime(timeMs);
-        console.log(`⏱️ Tiempo de carga: ${timeMs}ms`);
-      }
     } catch (err) {
-      console.error('❌ Error al obtener datos:', err);
-      setError(err instanceof Error ? err.message : 'Error desconocido al cargar los datos');
+      setError(err instanceof Error ? err.message : 'Error al conectar con el backend');
       setConnectionAttempts(prev => prev + 1);
     } finally {
       setIsLoading(false);
-      setInitialLoading(false);
-      loadingStartTime.current = null;
     }
   }, []);
 
-  // Efecto para cargar datos iniciales
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  // Efecto para actualización automática
   useEffect(() => {
     if (!autoRefresh) return;
     
     const interval = setInterval(() => {
-      // No mostrar el estado de carga para actualizaciones automáticas en segundo plano
-      // para evitar parpadeo en la interfaz
-      console.log("🔄 Actualizando datos automáticamente en segundo plano...");
       fetchDashboardData(true);
-    }, 60000); // Actualizar cada 60 segundos
+    }, 60000);
     
     return () => clearInterval(interval);
   }, [autoRefresh, fetchDashboardData]);
 
-  // Función para manejar reintentos
   const handleRetry = useCallback(() => {
     setConnectionAttempts(0);
-    // Forzar actualización ignorando la caché
     fetchDashboardData(true);
   }, [fetchDashboardData]);
 
-  // Función para alternar la actualización automática
   const toggleAutoRefresh = useCallback(() => {
     setAutoRefresh(prev => !prev);
   }, []);
   
-  // Función para limpiar la caché
   const handleClearCache = useCallback(() => {
     cache.clear();
-    console.log("🗑️ Caché eliminada completamente");
     fetchDashboardData(true);
   }, [fetchDashboardData]);
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-2 text-center text-blue-800">
-        Sistema de Análisis de Tráfico
-      </h1>
-      <p className="text-center text-gray-600 mb-4">Monitoreo en tiempo real de patrones de tráfico vehicular</p>
-      
-      <div className="flex flex-wrap justify-center gap-3 mb-4">
-        <button 
-          onClick={() => fetchDashboardData(true)}
-          disabled={isLoading}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
-        >
-          {isLoading ? 'Actualizando...' : 'Actualizar Ahora'}
-        </button>
-        
-        <button 
-          onClick={toggleAutoRefresh}
-          className={`font-bold py-2 px-4 rounded ${
-            autoRefresh 
-              ? 'bg-red-600 hover:bg-red-700 text-white' 
-              : 'bg-green-600 hover:bg-green-700 text-white'
-          }`}
-        >
-          {autoRefresh ? 'Detener Actualización Auto' : 'Activar Actualización Auto'}
-        </button>
-        
-        <button 
-          onClick={handleClearCache}
-          className="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded"
-        >
-          Limpiar Caché
-        </button>
-      </div>
-      
-      {lastUpdated && loadTime !== null && (
-        <div className="text-center text-sm text-gray-600 mb-3">
-          <p>Última actualización: {lastUpdated.toLocaleTimeString()}</p>
-          <p>Tiempo de carga: {loadTime} ms</p>
-        </div>
-      )}
-      
-      {initialLoading && !dashboardData && (
-        <div className="flex flex-col justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-700 mb-4"></div>
-          <p className="text-xl text-blue-700 font-semibold">Cargando datos iniciales...</p>
-        </div>
-      )}
-      
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-8">
-          <p className="font-bold">Error al cargar los datos</p>
-          <p>{error}</p>
-          
-          <div className="mt-4">
-            <button 
-              onClick={handleRetry}
-              className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
-            >
-              Reintentar conexión
-            </button>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-zinc-50">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="w-24 h-24 bg-gradient-to-br from-slate-700 to-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+            <span className="text-white text-4xl">🚦</span>
           </div>
-          
-          {connectionAttempts >= 3 && (
-            <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded">
-              <p className="font-bold">Recomendaciones para resolver el problema:</p>
-              <ol className="list-decimal pl-5 mt-2">
-                <li>Verifique que el servidor Spring Boot esté ejecutándose en <code className="bg-gray-100 px-1">http://localhost:8080</code></li>
-                <li>Ejecute <code className="bg-gray-100 px-1">mvn spring-boot:run</code> en la carpeta del proyecto backend</li>
-                <li>Revise la consola del navegador (F12) para ver errores específicos</li>
-                <li>Visite <code className="bg-gray-100 px-1 text-blue-600"><a href="/api-test" target="_blank">/api-test</a></code> para diagnóstico detallado</li>
-                <li>Si persiste el problema, pruebe limpiando la caché del navegador o reiniciando tanto el frontend como el backend</li>
-              </ol>
-            </div>
-          )}
+          <h1 className="text-5xl font-bold text-gradient mb-4">
+            Sistema de Análisis de Tráfico
+          </h1>
+          <p className="text-gray-600 text-xl max-w-2xl mx-auto">
+            Plataforma profesional de monitoreo y análisis en tiempo real de patrones de tráfico vehicular
+          </p>
         </div>
-      )}
-      
-      {dashboardData && (
-        <>
-          {isLoading ? (
-            <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded mb-8">
-              <div className="flex items-center">
-                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-700 mr-2"></div>
-                <p>Actualizando datos...</p>
+        
+        {/* Controles */}
+        <div className="flex flex-wrap justify-center gap-4 mb-8">
+          <button 
+            onClick={() => fetchDashboardData(true)}
+            disabled={isLoading}
+            className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Actualizando...</span>
+              </>
+            ) : (
+              <>
+                <span>🔄</span>
+                <span>Actualizar Datos</span>
+              </>
+            )}
+          </button>
+          
+          <button 
+            onClick={toggleAutoRefresh}
+            className={`${autoRefresh ? 'btn-secondary' : 'btn-primary'} flex items-center space-x-2`}
+          >
+            <span>{autoRefresh ? '⏸️' : '▶️'}</span>
+            <span>{autoRefresh ? 'Pausar Auto-actualización' : 'Activar Auto-actualización'}</span>
+          </button>
+          
+          <button 
+            onClick={handleClearCache}
+            className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center space-x-2"
+          >
+            <span>🗑️</span>
+            <span>Limpiar Caché</span>
+          </button>
+        </div>
+        
+        {/* Estado de actualización */}
+        {lastUpdated && (
+          <div className="text-center mb-6">
+            <div className="professional-card px-6 py-3 rounded-full inline-block">
+              <div className="flex items-center space-x-2 text-sm text-gray-600">
+                <span>⏰</span>
+                <span>Última actualización: {lastUpdated.toLocaleTimeString()}</span>
+                {autoRefresh && (
+                  <>
+                    <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                    <span className="text-emerald-700 font-medium">Auto-actualización activa</span>
+                  </>
+                )}
               </div>
             </div>
-          ) : !error ? (
-            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-8">
-              <p className="font-bold">Conexión establecida</p>
-              <p>Datos cargados correctamente. {autoRefresh ? 'Actualización automática cada 60 segundos.' : 'Actualización automática desactivada.'}</p>
+          </div>
+        )}
+        
+        {/* Notificaciones de error */}
+        {error && (
+          <div className="max-w-4xl mx-auto mb-8">
+            <div className="status-error rounded-xl p-6 shadow-lg">
+              <div className="flex items-start space-x-4">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-red-600 text-2xl">⚠️</span>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-red-800 mb-2">Error de Conexión con el Backend</h3>
+                  <p className="text-red-700 mb-4">{error}</p>
+                  
+                  <div className="flex flex-wrap gap-3">
+                    <button 
+                      onClick={handleRetry}
+                      className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300"
+                    >
+                      🔄 Reintentar Conexión
+                    </button>
+                    
+                    <a 
+                      href="/api-test"
+                      className="bg-red-100 hover:bg-red-200 text-red-800 font-semibold py-2 px-4 rounded-lg border border-red-300 transition-all duration-300"
+                    >
+                      🔧 Diagnóstico del Sistema
+                    </a>
+                  </div>
+                  
+                  {connectionAttempts >= 3 && (
+                    <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                      <h4 className="font-semibold text-amber-800 mb-2">💡 Pasos para resolver el problema:</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-amber-700">
+                        <div>
+                          <p className="font-medium">Backend:</p>
+                          <ul className="list-disc pl-4 space-y-1">
+                            <li>Verificar que Spring Boot esté ejecutándose</li>
+                            <li>Ejecutar <code className="bg-amber-100 px-1 rounded">mvn spring-boot:run</code></li>
+                            <li>Confirmar puerto 8080 disponible</li>
+                          </ul>
+                        </div>
+                        <div>
+                          <p className="font-medium">Datos:</p>
+                          <ul className="list-disc pl-4 space-y-1">
+                            <li>Ejecutar detector Python</li>
+                            <li>Verificar base de datos MySQL</li>
+                            <li>Confirmar JSON de detecciones</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-          ) : null}
-          
-          <Dashboard data={dashboardData} isLoading={isLoading} />
-        </>
-      )}
-      
-      <div className="mt-10 text-center text-gray-500 text-sm">
-        <p>Sistema de Análisis de Tráfico Vehicular © {new Date().getFullYear()}</p>
-        <p className="mt-1">Versión 1.1 - Rendimiento Optimizado</p>
+          </div>
+        )}
+        
+        {/* Notificación de éxito */}
+        {dashboardData && !error && (
+          <div className="max-w-4xl mx-auto mb-8">
+            <div className="status-success rounded-xl p-4 shadow-md">
+              <div className="flex items-center justify-center space-x-3">
+                <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center">
+                  <span className="text-emerald-600 text-lg">✅</span>
+                </div>
+                <p className="text-emerald-800 font-semibold">
+                  Sistema conectado correctamente - Datos cargados desde el backend
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Dashboard */}
+        <div className="animate-fade-in">
+          <Dashboard 
+            data={dashboardData || {
+              totalVolume: { hourly: {}, daily: {}, total: {} },
+              volumeByLane: {},
+              hourlyPatterns: {},
+              avgSpeedByLane: {},
+              bottlenecks: [],
+              trafficEvolution: { timestamps: [], car: [], bus: [], truck: [] },
+              speedEvolution: { timestamps: [], lane_1: [], lane_2: [], lane_3: [] },
+              vehicleTypeDominance: {}
+            }} 
+            isLoading={isLoading} 
+          />
+        </div>
+
+        {/* Estadísticas del sistema */}
+        {dashboardData && !isLoading && (
+          <div className="mt-12 professional-card p-6 rounded-xl">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              <span className="mr-2">📊</span>
+              Estado del Sistema
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+              <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                <p className="text-2xl font-bold text-blue-700">
+                  {Object.keys(dashboardData.totalVolume?.total || {}).length}
+                </p>
+                <p className="text-sm text-blue-600">Tipos de Vehículos</p>
+              </div>
+              <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-100">
+                <p className="text-2xl font-bold text-emerald-700">
+                  {Object.keys(dashboardData.volumeByLane || {}).length}
+                </p>
+                <p className="text-sm text-emerald-600">Carriles Monitoreados</p>
+              </div>
+              <div className="p-3 bg-violet-50 rounded-lg border border-violet-100">
+                <p className="text-2xl font-bold text-violet-700">
+                  {Object.keys(dashboardData.hourlyPatterns || {}).length}
+                </p>
+                <p className="text-sm text-violet-600">Horas Registradas</p>
+              </div>
+              <div className="p-3 bg-orange-50 rounded-lg border border-orange-100">
+                <p className="text-2xl font-bold text-orange-700">
+                  {dashboardData.trafficEvolution?.timestamps?.length || 0}
+                </p>
+                <p className="text-sm text-orange-600">Puntos Temporales</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,169 +1,231 @@
-import React, { memo } from 'react';
+import React, { memo, useState, useEffect } from 'react';
 import TrafficVolumeChart from './charts/TrafficVolumeChart';
 import LaneDistributionChart from './charts/LaneDistributionChart';
 import TimePatternChart from './charts/TimePatternChart';
 import SpeedComparisonChart from './charts/SpeedComparisonChart';
-import BottleneckChart from './charts/BottleneckChart';
 import TrafficEvolutionChart from './charts/TrafficEvolutionChart';
 import SpeedEvolutionChart from './charts/SpeedEvolutionChart';
 import VehicleTypeChart from './charts/VehicleTypeChart';
-import { DashboardData } from '@/lib/api';
+import { DashboardData, DataStructures, fetchDataStructures } from '@/lib/api';
 
-// Interfaz para las props del componente
 interface DashboardProps {
   data: DashboardData;
   isLoading?: boolean;
 }
 
-// Usar React.memo para reducir renderizados innecesarios
+const StatisticsPanel = memo(({ structures }: { structures: DataStructures }) => {
+  const quickMetrics = structures.arrayData.slice(0, 4);
+  const metricLabels = ['Flujo Actual', 'Velocidad Prom.', 'Densidad', 'Eficiencia'];
+  
+  const recentAlerts = structures.stackData.slice(0, 3);
+  const pendingAnalysis = structures.queueData.slice(0, 3);
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      {quickMetrics.map((value, index) => (
+        <div 
+          key={index} 
+          className="bg-gradient-to-br from-rose-50 to-pink-50 p-4 rounded-2xl shadow-lg border border-rose-100 transform hover:scale-105 transition-all duration-300"
+          style={{ animationDelay: `${index * 100}ms` }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-rose-600 font-medium">{metricLabels[index]}</p>
+              <p className="text-2xl font-bold text-rose-800">{value}</p>
+            </div>
+            <div className="w-12 h-12 bg-gradient-to-br from-rose-200 to-pink-200 rounded-full flex items-center justify-center">
+              <span className="text-rose-700 text-xl">
+                {index === 0 ? '🚦' : index === 1 ? '⚡' : index === 2 ? '📊' : '✨'}
+              </span>
+            </div>
+          </div>
+        </div>
+      ))}
+      
+      <div className="md:col-span-2 lg:col-span-2 bg-gradient-to-br from-amber-50 to-yellow-50 p-4 rounded-2xl shadow-lg border border-amber-100">
+        <h3 className="text-lg font-bold text-amber-800 mb-3 flex items-center">
+          <span className="mr-2">🚨</span> Alertas Recientes (Stack)
+        </h3>
+        <div className="space-y-2">
+          {recentAlerts.length > 0 ? recentAlerts.map((alert, index) => (
+            <div key={index} className="bg-white/50 p-2 rounded-lg text-sm text-amber-700">
+              ID: {alert.id} - {alert.date}
+            </div>
+          )) : (
+            <p className="text-amber-600 text-sm">Sin alertas recientes</p>
+          )}
+        </div>
+      </div>
+
+      <div className="md:col-span-2 lg:col-span-2 bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-2xl shadow-lg border border-blue-100">
+        <h3 className="text-lg font-bold text-blue-800 mb-3 flex items-center">
+          <span className="mr-2">⏳</span> Análisis Pendientes (Queue)
+        </h3>
+        <div className="space-y-2">
+          {pendingAnalysis.length > 0 ? pendingAnalysis.map((analysis, index) => (
+            <div key={index} className="bg-white/50 p-2 rounded-lg text-sm text-blue-700">
+              ID: {analysis.id} - {analysis.date}
+            </div>
+          )) : (
+            <p className="text-blue-600 text-sm">No hay análisis pendientes</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+});
+
 const Dashboard = memo(({ data, isLoading = false }: DashboardProps) => {
+  const [structures, setStructures] = useState<DataStructures>({
+    arrayData: [],
+    stackData: [],
+    queueData: [],
+    treeData: { value: null, children: [] }
+  });
+  const [structuresLoading, setStructuresLoading] = useState(true);
+
+  useEffect(() => {
+    const loadStructures = async () => {
+      try {
+        const structureData = await fetchDataStructures();
+        setStructures(structureData);
+      } catch (error) {
+        console.error('Error cargando estructuras:', error);
+      } finally {
+        setStructuresLoading(false);
+      }
+    };
+
+    loadStructures();
+  }, []);
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-pulse">
         {[...Array(8)].map((_, index) => (
-          <div key={index} className="bg-gray-200 rounded-lg h-80"></div>
+          <div 
+            key={index} 
+            className="bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl h-80 shadow-lg"
+            style={{ animationDelay: `${index * 100}ms` }}
+          ></div>
         ))}
       </div>
     );
   }
 
-  // Verificar que todos los datos necesarios estén presentes
-  const { 
-    totalVolume, 
-    volumeByLane, 
-    hourlyPatterns, 
-    avgSpeedByLane, 
-    bottlenecks,
-    trafficEvolution, 
-    speedEvolution, 
-    vehicleTypeDominance 
-  } = data;
+  const hasData = data && (
+    Object.keys(data.totalVolume?.total || {}).length > 0 ||
+    Object.keys(data.volumeByLane || {}).length > 0 ||
+    Object.keys(data.hourlyPatterns || {}).length > 0 ||
+    Object.keys(data.avgSpeedByLane || {}).length > 0
+  );
+
+  if (!hasData) {
+    return (
+      <div className="text-center py-12">
+        <div className="w-24 h-24 bg-gradient-to-br from-gray-200 to-gray-300 rounded-full flex items-center justify-center mx-auto mb-4">
+          <span className="text-4xl text-gray-500">📊</span>
+        </div>
+        <h2 className="text-2xl font-bold text-gray-700 mb-2">Sin datos disponibles</h2>
+        <p className="text-gray-500">El backend no ha devuelto datos para mostrar.</p>
+        <p className="text-sm text-gray-400 mt-2">Verifique la conexión con el servidor.</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-100 transition-all duration-300 hover:shadow-xl">
-        <div className="flex items-center mb-4">
-          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-            <svg className="w-5 h-5 text-blue-700" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M2 10a8 8 0 1116 0 8 8 0 01-16 0zm8 6a6 6 0 100-12 6 6 0 000 12zm1-6a1 1 0 10-2 0v2a1 1 0 102 0v-2z" />
-            </svg>
+    <div className="space-y-6">
+      {!structuresLoading && (
+        <StatisticsPanel structures={structures} />
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {Object.keys(data.totalVolume?.total || {}).length > 0 && (
+          <div className="bg-gradient-to-br from-rose-50 to-pink-50 p-6 rounded-2xl shadow-lg border border-rose-100 hover:shadow-xl transition-all duration-300">
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-rose-200 to-pink-200 rounded-full flex items-center justify-center mr-3">
+                <span className="text-rose-700 text-xl">📊</span>
+              </div>
+              <h2 className="text-xl font-bold text-rose-800">Volumen Total de Vehículos</h2>
+            </div>
+            <TrafficVolumeChart data={data.totalVolume} />
           </div>
-          <h2 className="text-xl font-bold text-slate-800">Volumen Total de Vehículos</h2>
-        </div>
-        <TrafficVolumeChart data={totalVolume || { total: {} }} />
-      </div>
-      
-      <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-100 transition-all duration-300 hover:shadow-xl">
-        <div className="flex items-center mb-4">
-          <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center mr-3">
-            <svg className="w-5 h-5 text-indigo-700" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-            </svg>
+        )}
+        
+        {Object.keys(data.volumeByLane || {}).length > 0 && (
+          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-6 rounded-2xl shadow-lg border border-blue-100 hover:shadow-xl transition-all duration-300">
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-200 to-cyan-200 rounded-full flex items-center justify-center mr-3">
+                <span className="text-blue-700 text-xl">🛣️</span>
+              </div>
+              <h2 className="text-xl font-bold text-blue-800">Distribución por Carril</h2>
+            </div>
+            <LaneDistributionChart data={data.volumeByLane} />
           </div>
-          <h2 className="text-xl font-bold text-slate-800">Distribución por Carril</h2>
-        </div>
-        <LaneDistributionChart data={volumeByLane || {}} />
-      </div>
-      
-      <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-100 transition-all duration-300 hover:shadow-xl">
-        <div className="flex items-center mb-4">
-          <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center mr-3">
-            <svg className="w-5 h-5 text-emerald-700" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zm0 16a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
-            </svg>
+        )}
+        
+        {Object.keys(data.hourlyPatterns || {}).length > 0 && (
+          <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-2xl shadow-lg border border-green-100 hover:shadow-xl transition-all duration-300">
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-200 to-emerald-200 rounded-full flex items-center justify-center mr-3">
+                <span className="text-green-700 text-xl">⏰</span>
+              </div>
+              <h2 className="text-xl font-bold text-green-800">Patrones Horarios</h2>
+            </div>
+            <TimePatternChart data={data.hourlyPatterns} />
           </div>
-          <h2 className="text-xl font-bold text-slate-800">Patrones Horarios de Tráfico</h2>
-        </div>
-        <TimePatternChart data={hourlyPatterns || {}} />
-      </div>
-      
-      <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-100 transition-all duration-300 hover:shadow-xl">
-        <div className="flex items-center mb-4">
-          <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-3">
-            <svg className="w-5 h-5 text-purple-700" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
+        )}
+        
+        {Object.keys(data.avgSpeedByLane || {}).length > 0 && (
+          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 p-6 rounded-2xl shadow-lg border border-purple-100 hover:shadow-xl transition-all duration-300">
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-200 to-indigo-200 rounded-full flex items-center justify-center mr-3">
+                <span className="text-purple-700 text-xl">⚡</span>
+              </div>
+              <h2 className="text-xl font-bold text-purple-800">Velocidad por Carril</h2>
+            </div>
+            <SpeedComparisonChart data={data.avgSpeedByLane} />
           </div>
-          <h2 className="text-xl font-bold text-slate-800">Comparación de Velocidad por Carril</h2>
-        </div>
-        <SpeedComparisonChart data={avgSpeedByLane || {}} />
-      </div>
-      
-      <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-100 transition-all duration-300 hover:shadow-xl">
-        <div className="flex items-center mb-4">
-          <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-3">
-            <svg className="w-5 h-5 text-red-700" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
+        )}
+        
+        {data.trafficEvolution?.timestamps?.length > 0 && (
+          <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-6 rounded-2xl shadow-lg border border-amber-100 hover:shadow-xl transition-all duration-300">
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-amber-200 to-orange-200 rounded-full flex items-center justify-center mr-3">
+                <span className="text-amber-700 text-xl">📈</span>
+              </div>
+              <h2 className="text-xl font-bold text-amber-800">Evolución del Tráfico</h2>
+            </div>
+            <TrafficEvolutionChart data={data.trafficEvolution} />
           </div>
-          <h2 className="text-xl font-bold text-slate-800">Cuellos de Botella Identificados</h2>
-        </div>
-        <BottleneckChart data={bottlenecks || []} />
-      </div>
-      
-      <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-100 transition-all duration-300 hover:shadow-xl">
-        <div className="flex items-center mb-4">
-          <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center mr-3">
-            <svg className="w-5 h-5 text-amber-700" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
-            </svg>
+        )}
+        
+        {data.speedEvolution?.timestamps?.length > 0 && (
+          <div className="bg-gradient-to-br from-teal-50 to-cyan-50 p-6 rounded-2xl shadow-lg border border-teal-100 hover:shadow-xl transition-all duration-300">
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-teal-200 to-cyan-200 rounded-full flex items-center justify-center mr-3">
+                <span className="text-teal-700 text-xl">🏎️</span>
+              </div>
+              <h2 className="text-xl font-bold text-teal-800">Evolución de Velocidad</h2>
+            </div>
+            <SpeedEvolutionChart data={data.speedEvolution} />
           </div>
-          <h2 className="text-xl font-bold text-slate-800">Evolución del Tráfico</h2>
-        </div>
-        <TrafficEvolutionChart data={trafficEvolution || { timestamps: [], car: [], bus: [], truck: [] }} />
-      </div>
-      
-      <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-100 transition-all duration-300 hover:shadow-xl">
-        <div className="flex items-center mb-4">
-          <div className="w-10 h-10 bg-cyan-100 rounded-full flex items-center justify-center mr-3">
-            <svg className="w-5 h-5 text-cyan-700" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 3a1 1 0 00-1.447-.894L8.763 6H5a3 3 0 000 6h.28l1.771 5.316A1 1 0 008 18h1a1 1 0 001-1v-4.382l6.553 3.276A1 1 0 0018 15V3z" clipRule="evenodd" />
-            </svg>
+        )}
+        
+        {Object.keys(data.vehicleTypeDominance || {}).length > 0 && (
+          <div className="md:col-span-2 bg-gradient-to-br from-violet-50 to-purple-50 p-6 rounded-2xl shadow-lg border border-violet-100 hover:shadow-xl transition-all duration-300">
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-violet-200 to-purple-200 rounded-full flex items-center justify-center mr-3">
+                <span className="text-violet-700 text-xl">🚗</span>
+              </div>
+              <h2 className="text-xl font-bold text-violet-800">Tipos de Vehículos</h2>
+            </div>
+            <VehicleTypeChart data={data.vehicleTypeDominance} />
           </div>
-          <h2 className="text-xl font-bold text-slate-800">Evolución de la Velocidad</h2>
-        </div>
-        <SpeedEvolutionChart data={speedEvolution || { timestamps: [], lane_1: [], lane_2: [], lane_3: [] }} />
-      </div>
-      
-      <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-100 transition-all duration-300 hover:shadow-xl">
-        <div className="flex items-center mb-4">
-          <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center mr-3">
-            <svg className="w-5 h-5 text-teal-700" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L9 4.323V3a1 1 0 011-1z" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-bold text-slate-800">Dominancia por Tipo de Vehículo</h2>
-        </div>
-        <VehicleTypeChart data={vehicleTypeDominance || {}} />
+        )}
       </div>
     </div>
   );
-}, (prevProps, nextProps) => {
-  // Optimización: solo renderizar si el estado de carga cambia o si los datos son realmente diferentes
-  if (prevProps.isLoading !== nextProps.isLoading) {
-    return false; // renderizar nuevamente
-  }
-  
-  // Verificación profunda de igualdad para evitar renderizados innecesarios
-  // Solo comparamos algunos campos clave para evitar una comparación costosa completa
-  const prevData = prevProps.data;
-  const nextData = nextProps.data;
-  
-  if (!prevData || !nextData) {
-    return prevData === nextData;
-  }
-  
-  // Comprobar si alguna de las métricas principales ha cambiado
-  if (JSON.stringify(prevData.totalVolume?.total) !== JSON.stringify(nextData.totalVolume?.total)) {
-    return false;
-  }
-  
-  if (Object.keys(prevData.volumeByLane || {}).length !== Object.keys(nextData.volumeByLane || {}).length) {
-    return false;
-  }
-  
-  // Si llegamos aquí, consideramos que los datos son iguales
-  return true;
 });
 
 export default Dashboard;
