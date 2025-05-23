@@ -49,37 +49,111 @@ body {
   color: var(--pastel-gray-700);
 }
 
-/* Fondo de la página principal con múltiples opciones de imagen */
+/* === FONDO PRINCIPAL OPTIMIZADO PARA TU IMAGEN === */
+
 .hero-background {
-  background-image: 
+  /* Configuración principal para tu imagen */
+  background: 
+    /* Overlay profesional optimizado */
     linear-gradient(
       135deg, 
-      rgba(255, 255, 255, 0.9) 0%, 
-      rgba(249, 250, 251, 0.85) 25%,
-      rgba(243, 244, 246, 0.8) 50%,
-      rgba(229, 231, 235, 0.85) 75%,
-      rgba(209, 213, 219, 0.9) 100%
+      rgba(255, 255, 255, 0.82) 0%, 
+      rgba(248, 250, 252, 0.75) 20%,
+      rgba(241, 245, 249, 0.68) 40%,
+      rgba(226, 232, 240, 0.72) 60%,
+      rgba(203, 213, 225, 0.78) 80%,
+      rgba(255, 255, 255, 0.82) 100%
     ),
-    /* Múltiples rutas para la imagen */
-    url('/image/background-image.jpg'),
-    url('/image/background-image.png'),
-    url('/image/background-image.jpeg'),
-    url('/background-image.jpg'),
-    url('/background-image.png'),
-    url('/background-image.jpeg'),
-    /* Patrón de respaldo */
-    url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZGVmcz4KICAgIDxwYXR0ZXJuIGlkPSJncmlkIiB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiPgogICAgICA8cGF0aCBkPSJNIDYwIDAgTCAwIDAgMCA2MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJyZ2JhKDE0NywgMTk3LCAyNTMsIDAuMSkiIHN0cm9rZS13aWR0aD0iMSIvPgogICAgICA8Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIyIiBmaWxsPSJyZ2JhKDE0NywgMTk3LCAyNTMsIDAuMDUpIi8+CiAgICA8L3BhdHRlcm4+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiIC8+Cjwvc3ZnPg=='),
-    /* Gradiente final de respaldo */
-    linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  background-size: cover, cover, cover, cover, cover, cover, cover, 60px 60px, cover;
-  background-position: center, center, center, center, center, center, center, center, center;
-  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, repeat, no-repeat;
-  background-attachment: fixed, fixed, fixed, fixed, fixed, fixed, fixed, fixed, fixed;
+    /* Tu imagen local con máxima prioridad */
+    url('/image/background-image.jpg');
+  
+  /* Configuración optimizada */
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-origin: padding-box;
+  background-clip: border-box;
+  
+  /* Estilo y animación */
   min-height: 100vh;
+  width: 100%;
+  position: relative;
+  
+  /* Optimizaciones de rendimiento */
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  
+  /* Transición suave */
+  transition: all 0.3s ease-in-out;
+}
+
+/* Versión con overlay más sutil para mejor visibilidad de imagen */
+.hero-background-light {
+  background: 
+    /* Overlay muy sutil */
+    linear-gradient(
+      135deg, 
+      rgba(255, 255, 255, 0.45) 0%, 
+      rgba(248, 250, 252, 0.35) 25%,
+      rgba(241, 245, 249, 0.25) 50%,
+      rgba(226, 232, 240, 0.35) 75%,
+      rgba(255, 255, 255, 0.45) 100%
+    ),
+    url('/image/background-image.jpg');
+  
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  min-height: 100vh;
+  width: 100%;
   position: relative;
 }
 
-/* Overlay más sutil */
+/* Versión sin overlay para debug */
+.hero-background-raw {
+  background: url('/image/background-image.jpg') center/cover no-repeat fixed;
+  min-height: 100vh;
+  width: 100%;
+  position: relative;
+  
+  /* Filtros para mejorar la imagen */
+  filter: brightness(1.05) contrast(1.1) saturate(1.1);
+}
+
+/* Versión con filtros profesionales */
+.hero-background-enhanced {
+  background: 
+    /* Overlay con gradiente más complejo */
+    radial-gradient(
+      ellipse at top, 
+      rgba(255, 255, 255, 0.3) 0%, 
+      transparent 70%
+    ),
+    linear-gradient(
+      to bottom, 
+      rgba(255, 255, 255, 0.6) 0%, 
+      rgba(255, 255, 255, 0.2) 30%,
+      rgba(255, 255, 255, 0.1) 70%,
+      rgba(255, 255, 255, 0.4) 100%
+    ),
+    url('/image/background-image.jpg');
+  
+  background-size: cover, cover, cover;
+  background-position: center, center, center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  min-height: 100vh;
+  position: relative;
+  
+  /* Filtros para mejorar la imagen */
+  filter: brightness(1.08) contrast(1.15) saturate(1.05) hue-rotate(2deg);
+}
+
+/* === OVERLAYS MEJORADOS === */
+
 .hero-overlay {
   position: absolute;
   top: 0;
@@ -88,27 +162,205 @@ body {
   bottom: 0;
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.1) 0%,
-    rgba(249, 250, 251, 0.05) 25%,
-    rgba(243, 244, 246, 0.1) 50%,
-    rgba(229, 231, 235, 0.05) 75%,
-    rgba(209, 213, 219, 0.1) 100%
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(248, 250, 252, 0.05) 25%,
+    rgba(241, 245, 249, 0.08) 50%,
+    rgba(226, 232, 240, 0.05) 75%,
+    rgba(203, 213, 225, 0.08) 100%
   );
-  backdrop-filter: blur(0.5px);
+  backdrop-filter: blur(0.5px) saturate(1.1);
+  z-index: 1;
 }
 
-/* Versión sin imagen para testing */
-.hero-background-simple {
-  background: linear-gradient(135deg, 
-    #ffffff 0%, 
-    #f9fafb 25%, 
-    #f3f4f6 50%, 
-    #e5e7eb 75%, 
-    #d1d5db 100%
+/* Overlay más fuerte para mejor contraste de texto */
+.hero-overlay-strong {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(248, 250, 252, 0.12) 25%,
+    rgba(241, 245, 249, 0.15) 50%,
+    rgba(226, 232, 240, 0.12) 75%,
+    rgba(203, 213, 225, 0.15) 100%
   );
+  backdrop-filter: blur(1px) saturate(1.2);
+  z-index: 1;
+}
+
+/* Overlay completamente transparente para debug */
+.hero-overlay-debug {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  z-index: 1;
+}
+
+/* === EFECTOS DINÁMICOS PARA LA IMAGEN === */
+
+/* Efecto parallax suave */
+.hero-background-parallax {
+  background: 
+    linear-gradient(
+      135deg, 
+      rgba(255, 255, 255, 0.75) 0%, 
+      rgba(248, 250, 252, 0.65) 50%,
+      rgba(255, 255, 255, 0.75) 100%
+    ),
+    url('/image/background-image.jpg');
+  
+  background-size: 110% auto;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
   min-height: 100vh;
   position: relative;
+  
+  /* Animación sutil */
+  animation: parallaxMove 20s ease-in-out infinite;
 }
+
+@keyframes parallaxMove {
+  0%, 100% { 
+    background-size: 110% auto;
+    background-position: center center;
+  }
+  25% { 
+    background-size: 115% auto;
+    background-position: 48% center;
+  }
+  50% { 
+    background-size: 110% auto;
+    background-position: center 48%;
+  }
+  75% { 
+    background-size: 115% auto;
+    background-position: 52% center;
+  }
+}
+
+/* === PRELOAD Y OPTIMIZACIONES === */
+
+/* Preload invisible para optimizar carga */
+.preload-background {
+  position: absolute;
+  top: -9999px;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  background: url('/image/background-image.jpg');
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* === RESPONSIVE OPTIMIZADO === */
+
+@media (max-width: 1024px) {
+  .hero-background,
+  .hero-background-light,
+  .hero-background-raw,
+  .hero-background-enhanced,
+  .hero-background-parallax {
+    /* En tablets, reducir el attachment fixed */
+    background-attachment: scroll;
+    background-size: cover;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-background,
+  .hero-background-light,
+  .hero-background-raw,
+  .hero-background-enhanced,
+  .hero-background-parallax {
+    /* En móviles, optimizar para rendimiento */
+    background-attachment: scroll;
+    background-size: cover;
+    background-position: center center;
+    
+    /* Overlay más fuerte en móvil para legibilidad */
+    background-image: 
+      linear-gradient(
+        to bottom, 
+        rgba(255, 255, 255, 0.85) 0%, 
+        rgba(255, 255, 255, 0.75) 50%,
+        rgba(255, 255, 255, 0.85) 100%
+      ),
+      url('/image/background-image.jpg');
+  }
+  
+  .hero-background-parallax {
+    animation: none; /* Deshabilitar animación en móvil */
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-background,
+  .hero-background-light,
+  .hero-background-enhanced {
+    /* En móviles pequeños, overlay aún más fuerte */
+    background-image: 
+      linear-gradient(
+        to bottom, 
+        rgba(255, 255, 255, 0.9) 0%, 
+        rgba(255, 255, 255, 0.8) 50%,
+        rgba(255, 255, 255, 0.9) 100%
+      ),
+      url('/image/background-image.jpg');
+  }
+}
+
+/* === CLASES DE DEBUG TEMPORALES === */
+
+/* Mostrar miniatura de la imagen para verificar carga */
+.test-image-preview {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  width: 200px;
+  height: 120px;
+  background: url('/image/background-image.jpg') center/cover no-repeat;
+  border: 3px solid #10b981;
+  border-radius: 8px;
+  z-index: 9999;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+.test-image-preview::after {
+  content: 'Vista previa de tu imagen ↑';
+  position: absolute;
+  bottom: -25px;
+  left: 0;
+  background: #10b981;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Indicador de estado de carga */
+.image-load-indicator {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: rgba(59, 130, 246, 0.9);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  z-index: 9999;
+  backdrop-filter: blur(4px);
+  animation: pulse 2s infinite;
+}
+
+/* === RESTO DEL CSS ORIGINAL MEJORADO === */
 
 /* Animaciones mejoradas */
 @keyframes slideInFromTop {
@@ -406,31 +658,6 @@ body {
   background-clip: text;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .container {
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-  
-  .professional-card:hover {
-    transform: translateY(-3px);
-  }
-  
-  .hero-background {
-    background-attachment: scroll;
-  }
-}
-
-/* Efectos de focus */
-.focus-ring:focus {
-  outline: none;
-  box-shadow: 
-    0 0 0 3px rgba(147, 197, 253, 0.2),
-    0 0 0 1px var(--hover-blue-500);
-  border-color: var(--hover-blue-500);
-}
-
 /* Estados actualizados */
 .status-error {
   background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
@@ -486,11 +713,11 @@ body {
   left: 100%;
 }
 
-/* Debug para imagen */
-.hero-background-debug {
-  background: 
-    url('/image/background-image.jpg') center/cover no-repeat,
-    linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  min-height: 100vh;
-  position: relative;
+/* Efectos de focus */
+.focus-ring:focus {
+  outline: none;
+  box-shadow: 
+    0 0 0 3px rgba(147, 197, 253, 0.2),
+    0 0 0 1px var(--hover-blue-500);
+  border-color: var(--hover-blue-500);
 }

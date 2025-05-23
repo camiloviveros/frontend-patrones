@@ -72,7 +72,7 @@ export default function Home() {
   }, [fetchDashboardData]);
 
   return (
-    <div className="hero-background">
+    <div className="hero-background-parallax">
       <div className="hero-overlay"></div>
       <div className="relative z-10">
         <div className="container mx-auto px-4 py-12">
